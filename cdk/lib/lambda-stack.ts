@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import { IVpc } from "aws-cdk-lib/aws-ec2";
 import { Architecture, IFunction, Runtime } from "aws-cdk-lib/aws-lambda";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
+import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 
 interface AdditionalProps extends StackProps {
   vpc: IVpc;
@@ -29,6 +30,10 @@ export class LambdaStack extends Stack {
       environment.OVERWRITE_OUTGOING_EMAILS = 'email-automation-staging@carpentries.org';
     }
 
+    const exeuctionRole = new Role(this, 'EmailWorkerExecutionRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+    });
+
     this.lambdaFunction = new PythonFunction(this, 'EmailWorker', {
       functionName: 'amy-email-worker',
       architecture: Architecture.ARM_64,  // cheaper than x84_64b
@@ -39,6 +44,15 @@ export class LambdaStack extends Stack {
       timeout: Duration.minutes(2),
       vpc: vpc,
       environment: environment,
+      role: exeuctionRole,
     });
+
+    exeuctionRole.addManagedPolicy(
+      ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole')
+    );
+    exeuctionRole.addToPolicy(new PolicyStatement({
+      resources: ['*'],
+      actions: ['ssm:GetParameter'],
+    }));
   }
 }

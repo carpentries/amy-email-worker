@@ -1,6 +1,6 @@
 import os
 
-from worker.utils.types import Settings
+from utils.types import Settings
 
 
 def read_settings_from_env() -> Settings:

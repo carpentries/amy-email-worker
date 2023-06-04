@@ -1,17 +1,16 @@
 import logging
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
-
-from worker.utils.settings import read_settings_from_env
-from worker.utils.ssm import read_ssm_parameter
-from worker.utils.types import WorkerOutput
+from utils.settings import read_settings_from_env
+from utils.ssm import read_ssm_parameter
+from utils.types import WorkerOutput
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def handler(event: dict, context: LambdaContext) -> WorkerOutput:
-    logger.debug(f"Start handler with arguments: {event=}, {context=}")
+    logger.info(f"Start handler with arguments: {event=}, {context=}")
 
     settings = read_settings_from_env()
     stage = settings["stage"]
@@ -22,8 +21,8 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
     # database_user = read_ssm_parameter(f'/{stage}/amy/database_user')
     # database_password = read_ssm_parameter(f'/{stage}/amy/database_password')
 
-    logger.debug(f"{database_host=}")
+    logger.info(f"{database_host=}")
 
     result: WorkerOutput = {"message": "Hello World"}
-    logger.debug("End handler with result: {result}")
+    logger.info("End handler with result: {result}")
     return result
