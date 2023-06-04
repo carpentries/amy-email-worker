@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "amy-email-worker"
+version = "0.1.0"
+description = "A lambda worker for sending queued emails at scheduled times."
+authors = ["Carpentries Team <team@carpentries.org>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "email_worker"}]
+
+[tool.poetry.dependencies]
+python = "3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
