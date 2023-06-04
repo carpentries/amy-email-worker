@@ -21,3 +21,11 @@ class SSMParameter(TypedDict, total=False):
 class Settings(TypedDict):
     stage: str
     overwrite_outgoing_emails: str
+
+
+class DatabaseCredentials(TypedDict):
+    host: str
+    port: str
+    name: str
+    user: str
+    password: str

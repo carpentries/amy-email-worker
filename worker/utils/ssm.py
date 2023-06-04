@@ -12,3 +12,7 @@ def read_ssm_parameter(path: str) -> Optional[SSMParameter]:
         return response["Parameter"]
 
     return None
+
+
+def get_parameter_value(parameter: SSMParameter) -> str:
+    return parameter.get("Value", "")
