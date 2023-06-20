@@ -19,8 +19,8 @@ class SSMParameter(TypedDict, total=False):
 
 
 class Settings(TypedDict):
-    stage: str
-    overwrite_outgoing_emails: str
+    STAGE: str
+    OVERWRITE_OUTGOING_EMAILS: str
 
 
 class DatabaseCredentials(TypedDict):

@@ -1,7 +1,10 @@
 import logging
 
+import psycopg
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from utils.database import read_database_credentials_from_ssm
+from psycopg.rows import dict_row
+
+from utils.database import connection_string, read_database_credentials_from_ssm
 from utils.settings import read_settings_from_env
 from utils.types import WorkerOutput
 
@@ -13,11 +16,23 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
     logger.info(f"Start handler with arguments: {event=}, {context=}")
 
     settings = read_settings_from_env()
-    stage = settings["stage"]
+    stage = settings["STAGE"]
     database_credentials = read_database_credentials_from_ssm(stage)
 
-    logger.info(f"{database_credentials['host']=}")
+    result: WorkerOutput = {"message": ""}
 
-    result: WorkerOutput = {"message": "Hello World"}
+    with psycopg.connect(
+        connection_string(database_credentials), row_factory=dict_row
+    ) as connection:
+        with connection.cursor() as cur:
+            # TODO: change table name
+            cur.execute("SELECT * FROM workshops_event ORDER BY RANDOM() LIMIT 1")
+            record = cur.fetchone()
+
+            if record is None:
+                result["message"] = "No event"
+            else:
+                result["message"] = record["slug"]
+
     logger.info(f"End handler with result: {result}")
     return result
