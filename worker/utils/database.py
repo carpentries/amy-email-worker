@@ -1,5 +1,9 @@
+from datetime import datetime, timezone
+
+from psycopg.cursor import Cursor
+
 from utils.ssm import get_parameter_value, read_ssm_parameter
-from utils.types import DatabaseCredentials
+from utils.types import DatabaseCredentials, ScheduledEmail
 
 
 def read_database_credentials_from_ssm(stage: str) -> DatabaseCredentials:
@@ -50,3 +54,22 @@ def connection_string(credentials: DatabaseCredentials) -> str:
         f"@{credentials['host']}:{credentials['port']}"
         f"/{credentials['name']}"
     )
+
+
+def fetch_scheduled_emails(cursor: Cursor) -> list[ScheduledEmail]:
+    now = datetime.now(tz=timezone.utc)
+    cursor.execute(
+        """
+        SELECT
+            id, created_at, last_updated_at, state, scheduled_at,
+            to_header, from_header, reply_to_header, cc_header, bcc_header,
+            subject, body, template_id
+        FROM emails_scheduledemail
+        WHERE
+            (state = 'scheduled' OR state = 'failed')
+            AND scheduled_at <= %s
+        """,
+        (now,),
+    )
+    records: list[ScheduledEmail] = cursor.fetchall()
+    return records

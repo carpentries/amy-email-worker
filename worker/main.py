@@ -4,7 +4,11 @@ import psycopg
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from psycopg.rows import dict_row
 
-from utils.database import connection_string, read_database_credentials_from_ssm
+from utils.database import (
+    connection_string,
+    fetch_scheduled_emails,
+    read_database_credentials_from_ssm,
+)
 from utils.settings import read_settings_from_env
 from utils.types import WorkerOutput
 
@@ -19,20 +23,16 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
     stage = settings["STAGE"]
     database_credentials = read_database_credentials_from_ssm(stage)
 
-    result: WorkerOutput = {"message": ""}
+    logger.info("Obtained credentials for database.")
+
+    result: WorkerOutput = {"scheduled_emails": []}
 
     with psycopg.connect(
         connection_string(database_credentials), row_factory=dict_row
     ) as connection:
         with connection.cursor() as cur:
-            # TODO: change table name
-            cur.execute("SELECT * FROM workshops_event ORDER BY RANDOM() LIMIT 1")
-            record = cur.fetchone()
-
-            if record is None:
-                result["message"] = "No event"
-            else:
-                result["message"] = record["slug"]
+            emails = fetch_scheduled_emails(cur)
+            result["scheduled_emails"] = emails
 
     logger.info(f"End handler with result: {result}")
     return result
