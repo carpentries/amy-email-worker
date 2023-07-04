@@ -1,9 +1,16 @@
 from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 from psycopg.cursor import Cursor
 
 from utils.ssm import get_parameter_value, read_ssm_parameter
-from utils.types import DatabaseCredentials, ScheduledEmail
+from utils.types import (
+    DatabaseCredentials,
+    NotFoundError,
+    ScheduledEmail,
+    ScheduledEmailStatus,
+    to_scheduled_email,
+)
 
 
 def read_database_credentials_from_ssm(stage: str) -> DatabaseCredentials:
@@ -56,6 +63,25 @@ def connection_string(credentials: DatabaseCredentials) -> str:
     )
 
 
+def fetch_email(id: UUID, cursor: Cursor) -> ScheduledEmail:
+    cursor.execute(
+        """
+        SELECT
+            id, created_at, last_updated_at, state, scheduled_at,
+            to_header, from_header, reply_to_header, cc_header, bcc_header,
+            subject, body, template_id
+        FROM emails_scheduledemail
+        WHERE id = %s
+        """,
+        (id,),
+    )
+    record = cursor.fetchone()
+    if not record:
+        raise NotFoundError(f"Scheduled email {id} not found in DB")
+
+    return to_scheduled_email(record)
+
+
 def fetch_scheduled_emails(cursor: Cursor) -> list[ScheduledEmail]:
     now = datetime.now(tz=timezone.utc)
     cursor.execute(
@@ -71,5 +97,49 @@ def fetch_scheduled_emails(cursor: Cursor) -> list[ScheduledEmail]:
         """,
         (now,),
     )
-    records: list[ScheduledEmail] = cursor.fetchall()
+    records = [to_scheduled_email(d) for d in cursor.fetchall()]
     return records
+
+
+def update_email_state(
+    email: ScheduledEmail,
+    new_state: ScheduledEmailStatus,
+    cursor: Cursor,
+    details: str = "State changed by worker",
+) -> ScheduledEmail:
+    now = datetime.now(tz=timezone.utc)
+    id = email["id"]
+    old_state = email["state"]
+    cursor.execute(
+        """
+        UPDATE emails_scheduledemail SET state = %s WHERE id = %s
+        """,
+        (new_state.value, id),
+    )
+    cursor.execute(
+        """
+        INSERT INTO emails_scheduledemaillog
+        (id, created_at, details, state_before, state_after, scheduled_email_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """,
+        (uuid4(), now, details, old_state.value, new_state.value, id),
+    )
+    return fetch_email(id, cursor)
+
+
+def lock_email(email: ScheduledEmail, cursor: Cursor) -> ScheduledEmail:
+    return update_email_state(email, ScheduledEmailStatus.LOCKED, cursor)
+
+
+def fail_email(email: ScheduledEmail, details: str, cursor: Cursor) -> ScheduledEmail:
+    return update_email_state(
+        email, ScheduledEmailStatus.FAILED, cursor, details=details
+    )
+
+
+def succeed_email(
+    email: ScheduledEmail, details: str, cursor: Cursor
+) -> ScheduledEmail:
+    return update_email_state(
+        email, ScheduledEmailStatus.SUCCEEDED, cursor, details=details
+    )
