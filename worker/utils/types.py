@@ -9,8 +9,13 @@ class NotFoundError(Exception):
     pass
 
 
+class WorkerOutputEmail(TypedDict):
+    email: "ScheduledEmail"
+    status: "ScheduledEmailStatus"
+
+
 class WorkerOutput(TypedDict):
-    scheduled_emails: list["ScheduledEmail"]
+    emails: list[WorkerOutputEmail]
 
 
 class SSMParameter(TypedDict, total=False):

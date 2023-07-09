@@ -33,14 +33,13 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
     mailgun_credentials = read_mailgun_credentials(stage)
     logger.info("Obtained credentials for Mailgun.")
 
-    result: WorkerOutput = {"scheduled_emails": []}
+    result: WorkerOutput = {"emails": []}
 
     with psycopg.connect(
         connection_string(database_credentials), row_factory=dict_row
     ) as connection:
         with connection.cursor() as cur:
             emails = fetch_scheduled_emails(cur)
-            result["scheduled_emails"] = emails
 
             for email in emails:
                 id = email["id"]
@@ -62,8 +61,14 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
 
                 except Exception as exc:
                     logger.info(f"Failed to send email {id}. Error: {exc}")
-                    fail_email(
+                    failed_email = fail_email(
                         updated_email, f"Email failed to send. Error: {exc}", cur
+                    )
+                    result["emails"].append(
+                        {
+                            "email": failed_email,
+                            "status": failed_email["state"],
+                        }
                     )
 
                 else:
@@ -75,6 +80,12 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
                         succeeded_email["state"],
                         cur,
                         details=f"Mailgun response: {response.content}",
+                    )
+                    result["emails"].append(
+                        {
+                            "email": succeeded_email,
+                            "status": succeeded_email["state"],
+                        }
                     )
 
         connection.commit()
