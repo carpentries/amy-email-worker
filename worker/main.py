@@ -12,7 +12,7 @@ from utils.database import (
     read_database_credentials_from_ssm,
     succeed_email,
 )
-from utils.settings import read_settings_from_env
+from utils.settings import read_mailgun_credentials, read_settings_from_env
 from utils.types import WorkerOutput
 
 logging.basicConfig()
@@ -26,8 +26,10 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
     settings = read_settings_from_env()
     stage = settings.STAGE
     database_credentials = read_database_credentials_from_ssm(stage)
-
     logger.info("Obtained credentials for database.")
+
+    mailgun_credentials = read_mailgun_credentials(stage)
+    logger.info("Obtained credentials for Mailgun.")
 
     result: WorkerOutput = {"scheduled_emails": []}
 

@@ -32,6 +32,12 @@ class Settings:
 
 
 @dataclass(frozen=True)
+class MailgunCredentials:
+    MAILGUN_SENDER_DOMAIN: str
+    MAILGUN_API_KEY: str
+
+
+@dataclass(frozen=True)
 class DatabaseCredentials:
     HOST: str
     PORT: str
