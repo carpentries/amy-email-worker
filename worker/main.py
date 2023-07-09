@@ -11,7 +11,9 @@ from utils.database import (
     lock_email,
     read_database_credentials_from_ssm,
     succeed_email,
+    update_email_state,
 )
+from utils.email import send_email
 from utils.settings import read_mailgun_credentials, read_settings_from_env
 from utils.types import WorkerOutput
 
@@ -48,8 +50,15 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
                 logger.info(f"Locked email {id}. Attempting to send.")
 
                 try:
-                    send_email(updated_email)  # type: ignore
+                    response = send_email(
+                        updated_email,
+                        mailgun_credentials,
+                        overwrite_outgoing_emails=settings.OVERWRITE_OUTGOING_EMAILS,
+                    )
                     logger.info(f"Sent email {id}.")
+                    logger.info(f"Mailgun response: {response=}")
+                    logger.info(f"Response content: {response.content}")
+                    response.raise_for_status()
 
                 except Exception as exc:
                     logger.info(f"Failed to send email {id}. Error: {exc}")
@@ -58,7 +67,15 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
                     )
 
                 else:
-                    succeed_email(updated_email, "Email sent successfully.", cur)
+                    succeeded_email = succeed_email(
+                        updated_email, "Email sent successfully.", cur
+                    )
+                    update_email_state(
+                        succeeded_email,
+                        succeeded_email["state"],
+                        cur,
+                        details=f"Mailgun response: {response.content}",
+                    )
 
         connection.commit()
 
