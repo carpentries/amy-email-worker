@@ -46,20 +46,20 @@ def read_database_credentials_from_ssm(stage: str) -> DatabaseCredentials:
         else "fakePassword"
     )
 
-    return {
-        "host": database_host,
-        "port": database_port,
-        "name": database_name,
-        "user": database_user,
-        "password": database_password,
-    }
+    return DatabaseCredentials(
+        HOST=database_host,
+        PORT=database_port,
+        USER=database_user,
+        PASSWORD=database_password,
+        NAME=database_name,
+    )
 
 
 def connection_string(credentials: DatabaseCredentials) -> str:
     return (
-        f"postgresql://{credentials['user']}:{credentials['password']}"
-        f"@{credentials['host']}:{credentials['port']}"
-        f"/{credentials['name']}"
+        f"postgresql://{credentials.USER}:{credentials.PASSWORD}"
+        f"@{credentials.HOST}:{credentials.PORT}"
+        f"/{credentials.NAME}"
     )
 
 

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Literal, Optional, TypedDict
@@ -24,17 +25,19 @@ class SSMParameter(TypedDict, total=False):
     DataType: str
 
 
-class Settings(TypedDict):
+@dataclass(frozen=True)
+class Settings:
     STAGE: str
     OVERWRITE_OUTGOING_EMAILS: str
 
 
-class DatabaseCredentials(TypedDict):
-    host: str
-    port: str
-    name: str
-    user: str
-    password: str
+@dataclass(frozen=True)
+class DatabaseCredentials:
+    HOST: str
+    PORT: str
+    USER: str
+    PASSWORD: str
+    NAME: str
 
 
 class ScheduledEmailStatus(Enum):

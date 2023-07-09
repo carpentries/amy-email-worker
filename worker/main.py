@@ -24,7 +24,7 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
     logger.info(f"Start handler with arguments: {event=}, {context=}")
 
     settings = read_settings_from_env()
-    stage = settings["STAGE"]
+    stage = settings.STAGE
     database_credentials = read_database_credentials_from_ssm(stage)
 
     logger.info("Obtained credentials for database.")
