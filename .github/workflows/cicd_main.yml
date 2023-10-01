@@ -1,0 +1,49 @@
+# CI/CD for the main branch
+
+name: CI/CD (main)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # No tests yet.
+  # test:
+  #   uses: ./.github/workflows/test.yml
+
+  # No building phase yet.
+  # build:
+  #   uses: ./.github/workflows/build.yml
+
+  deploy:
+    name: Deploy CDK
+    environment: staging
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+    - name: Install CDK dependencies
+        working-directory: ./cdk
+        run: |
+          npm install
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1-node16
+      with:
+        role-to-assume: ${{ vars.AWS_CDK_ROLE_TO_ASSUME }}
+        aws-region: ${{ vars.AWS_REGION }}
+        mask-aws-account-id: false
+
+    - name: Deploy to AWS
+        working-directory: ./cdk
+        run: cdk deploy --require-approval=never EmailWorkerLambda
