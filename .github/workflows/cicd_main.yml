@@ -33,7 +33,7 @@ jobs:
         node-version: "16"
 
     - name: Install CDK dependencies
-      working-directory: ./cdk
+      working-directory: cdk
       run: |
         npm install
 
@@ -45,5 +45,5 @@ jobs:
         mask-aws-account-id: false
 
     - name: Deploy to AWS
-      working-directory: ./cdk
+      working-directory: cdk
       run: cdk deploy --require-approval=never EmailWorkerLambda
