@@ -28,14 +28,14 @@ jobs:
 
     steps:
     - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16"
+      uses: actions/setup-node@v3
+      with:
+        node-version: "16"
 
     - name: Install CDK dependencies
-        working-directory: ./cdk
-        run: |
-          npm install
+      working-directory: ./cdk
+      run: |
+        npm install
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1-node16
@@ -45,5 +45,5 @@ jobs:
         mask-aws-account-id: false
 
     - name: Deploy to AWS
-        working-directory: ./cdk
-        run: cdk deploy --require-approval=never EmailWorkerLambda
+      working-directory: ./cdk
+      run: cdk deploy --require-approval=never EmailWorkerLambda
