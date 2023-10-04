@@ -44,8 +44,8 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v1-node16
       with:
         role-to-assume: ${{ vars.AWS_CDK_ROLE_TO_ASSUME }}
-        aws-region: ${{ vars.AWS_REGION }}
-        mask-aws-account-id: false
+        aws-region: ${{ secrets.AWS_REGION }}
+        mask-aws-account-id: true
 
     - name: Deploy to AWS
       working-directory: ./cdk
