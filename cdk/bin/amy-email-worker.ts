@@ -4,6 +4,7 @@ import { App, Tags } from 'aws-cdk-lib';
 import { VpcStack } from '../lib/vpc-stack';
 import { LambdaStack } from '../lib/lambda-stack';
 import { CronStack } from '../lib/cron-stack';
+import { GithubOidcAmyWorkerStack } from '../lib/github-oidc-stack'
 
 const env = { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION };
 
@@ -35,3 +36,12 @@ const cronStack = new CronStack(app, 'EmailWorkerCron', {
 Tags.of(cronStack).add('ApplicationID', APPLICATION_TAG);
 Tags.of(cronStack).add('Billing-Service', BILLING_SERVICE_TAG);
 Tags.of(cronStack).add('Environment', STAGE);
+
+const githubOidcAmyWorkerStack = new GithubOidcAmyWorkerStack(app, 'GithubOidcAmyWorker', {
+  env: env,
+  organization: 'carpentries',
+  repository: 'amy-email-worker',
+});
+Tags.of(githubOidcAmyWorkerStack).add('ApplicationID', APPLICATION_TAG);
+Tags.of(githubOidcAmyWorkerStack).add('Billing-Service', BILLING_SERVICE_TAG);
+Tags.of(githubOidcAmyWorkerStack).add('Environment', STAGE);
