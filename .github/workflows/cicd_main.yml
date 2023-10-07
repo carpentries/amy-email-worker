@@ -25,6 +25,7 @@ jobs:
 
     permissions:
       id-token: write
+      contents: read
 
     steps:
     - name: Check out code
@@ -41,9 +42,9 @@ jobs:
         npm install
 
     - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1-node16
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: ${{ vars.AWS_CDK_ROLE_TO_ASSUME }}
+        role-to-assume: ${{ secrets.AWS_CDK_ROLE_TO_ASSUME }}
         aws-region: ${{ secrets.AWS_REGION }}
         mask-aws-account-id: true
 
