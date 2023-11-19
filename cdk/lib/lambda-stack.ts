@@ -27,7 +27,7 @@ export class LambdaStack extends Stack {
     };
 
     if (stage != 'production') {
-      environment.OVERWRITE_OUTGOING_EMAILS = 'email-automation-staging@carpentries.org';
+      environment.OVERWRITE_OUTGOING_EMAILS = 'amy-tests@carpentries.org';
     }
 
     const exeuctionRole = new Role(this, 'EmailWorkerExecutionRole', {
