@@ -1,21 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Optional, TypedDict
+from typing import Any, Literal, Optional, TypedDict
 from uuid import UUID
+
+from pydantic import BaseModel
 
 
 class NotFoundError(Exception):
     pass
-
-
-class WorkerOutputEmail(TypedDict):
-    email: "ScheduledEmail"
-    status: "ScheduledEmailStatus"
-
-
-class WorkerOutput(TypedDict):
-    emails: list[WorkerOutputEmail]
 
 
 class SSMParameter(TypedDict, total=False):
@@ -59,7 +52,7 @@ class ScheduledEmailStatus(Enum):
     FAILED = "failed"
 
 
-class ScheduledEmail(TypedDict):
+class ScheduledEmail(BaseModel):
     id: UUID
     created_at: datetime
     last_updated_at: Optional[datetime]
@@ -72,22 +65,13 @@ class ScheduledEmail(TypedDict):
     bcc_header: list[str]
     subject: str
     body: str
-    template: UUID
+    template_id: UUID
 
 
-def to_scheduled_email(d: dict) -> ScheduledEmail:
-    return {
-        "id": d["id"],
-        "created_at": d["created_at"],
-        "last_updated_at": d["last_updated_at"],
-        "state": ScheduledEmailStatus(d["state"]),
-        "scheduled_at": d["scheduled_at"],
-        "to_header": d["to_header"],
-        "from_header": d["from_header"],
-        "reply_to_header": d["reply_to_header"],
-        "cc_header": d["cc_header"],
-        "bcc_header": d["bcc_header"],
-        "subject": d["subject"],
-        "body": d["body"],
-        "template": d["template_id"],
-    }
+class WorkerOutputEmail(TypedDict):
+    email: dict[str, dict[str, Any] | ScheduledEmailStatus]
+    status: ScheduledEmailStatus
+
+
+class WorkerOutput(TypedDict):
+    emails: list[WorkerOutputEmail]

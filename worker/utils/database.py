@@ -9,7 +9,6 @@ from utils.types import (
     NotFoundError,
     ScheduledEmail,
     ScheduledEmailStatus,
-    to_scheduled_email,
 )
 
 
@@ -79,7 +78,7 @@ def fetch_email(id: UUID, cursor: Cursor) -> ScheduledEmail:
     if not record:
         raise NotFoundError(f"Scheduled email {id} not found in DB")
 
-    return to_scheduled_email(record)
+    return ScheduledEmail(**record)
 
 
 def fetch_scheduled_emails(cursor: Cursor) -> list[ScheduledEmail]:
@@ -97,7 +96,7 @@ def fetch_scheduled_emails(cursor: Cursor) -> list[ScheduledEmail]:
         """,
         (now,),
     )
-    records = [to_scheduled_email(d) for d in cursor.fetchall()]
+    records = [ScheduledEmail(**record) for record in cursor.fetchall()]
     return records
 
 
@@ -108,8 +107,8 @@ def update_email_state(
     details: str = "State changed by worker",
 ) -> ScheduledEmail:
     now = datetime.now(tz=timezone.utc)
-    id = email["id"]
-    old_state = email["state"]
+    id = email.id
+    old_state = email.state
     cursor.execute(
         """
         UPDATE emails_scheduledemail SET state = %s WHERE id = %s

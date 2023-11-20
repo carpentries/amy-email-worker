@@ -42,7 +42,7 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
             emails = fetch_scheduled_emails(cur)
 
             for email in emails:
-                id = email["id"]
+                id = email.id
                 logger.info(f"Working on email {id}.")
 
                 updated_email = lock_email(email, cur)
@@ -66,8 +66,8 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
                     )
                     result["emails"].append(
                         {
-                            "email": failed_email,
-                            "status": failed_email["state"],
+                            "email": failed_email.model_dump(),
+                            "status": failed_email.state,
                         }
                     )
 
@@ -77,14 +77,14 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
                     )
                     update_email_state(
                         succeeded_email,
-                        succeeded_email["state"],
+                        succeeded_email.state,
                         cur,
                         details=f"Mailgun response: {response.content}",
                     )
                     result["emails"].append(
                         {
-                            "email": succeeded_email,
-                            "status": succeeded_email["state"],
+                            "email": succeeded_email.model_dump(),
+                            "status": succeeded_email.state,
                         }
                     )
 
