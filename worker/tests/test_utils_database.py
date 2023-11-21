@@ -1,18 +1,19 @@
 from datetime import datetime
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch, call, ANY
 from uuid import uuid4
 
 import pytest
 
 from utils.database import (
+    Db,
     read_database_credentials_from_ssm,
     connection_string,
-    fetch_email,
-    fetch_scheduled_emails,
+    fetch_email_by_id,
+    fetch_scheduled_emails_to_run,
     update_email_state,
-    # lock_email,
-    # fail_email,
-    # succeed_email,
+    lock_email,
+    fail_email,
+    succeed_email,
 )
 from utils.types import (
     DatabaseCredentials,
@@ -74,7 +75,8 @@ def test_connection_string() -> None:
     assert connection_str == expected_connection_string
 
 
-def test_fetch_email() -> None:
+@patch.object(Db, "select_scheduled_email")
+def test_fetch_email_by_id(mock_select_scheduled_email: MagicMock) -> None:
     # Arrange
     id_ = uuid4()
     template_id = uuid4()
@@ -96,9 +98,10 @@ def test_fetch_email() -> None:
     }
 
     # Act
-    result = fetch_email(id_, mock_cursor)
+    result = fetch_email_by_id(id_, mock_cursor)
 
     # Assert
+    mock_select_scheduled_email.assert_called_once_with(mock_cursor, id_)
     assert result == ScheduledEmail(
         id=id_,
         created_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
@@ -116,7 +119,7 @@ def test_fetch_email() -> None:
     )
 
 
-def test_fetch_email__failed() -> None:
+def test_fetch_email_by_id__failed() -> None:
     # Arrange
     id_ = uuid4()
     mock_cursor = MagicMock()
@@ -124,10 +127,11 @@ def test_fetch_email__failed() -> None:
 
     # Act & Assert
     with pytest.raises(NotFoundError):
-        fetch_email(id_, mock_cursor)
+        fetch_email_by_id(id_, mock_cursor)
 
 
-def test_fetch_scheduled_emails() -> None:
+@patch.object(Db, "select_scheduled_emails")
+def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -> None:
     # Arrange
     id1 = uuid4()
     id2 = uuid4()
@@ -168,9 +172,10 @@ def test_fetch_scheduled_emails() -> None:
     ]
 
     # Act
-    result = fetch_scheduled_emails(mock_cursor)
+    result = fetch_scheduled_emails_to_run(mock_cursor)
 
     # Assert
+    mock_select_scheduled_emails.assert_called_once_with(mock_cursor, timestamp=ANY)
     assert result == [
         ScheduledEmail(
             id=id1,
@@ -205,8 +210,14 @@ def test_fetch_scheduled_emails() -> None:
     ]
 
 
-@patch("utils.database.fetch_email")
-def test_update_email_state(mock_fetch_email: MagicMock) -> None:
+@patch("utils.database.fetch_email_by_id")
+@patch.object(Db, "update_scheduled_email_status")
+@patch.object(Db, "insert_scheduled_email_log")
+def test_update_email_state(
+    mock_insert_scheduled_email_log: MagicMock,
+    mock_update_scheduled_email_status: MagicMock,
+    mock_fetch_email: MagicMock,
+) -> None:
     # Arrange
     id_ = uuid4()
     template_id = uuid4()
@@ -255,4 +266,109 @@ def test_update_email_state(mock_fetch_email: MagicMock) -> None:
         subject="",
         body="",
         template_id=template_id,
+    )
+    mock_update_scheduled_email_status.assert_called_once_with(
+        mock_cursor, id_, new_state
+    )
+    mock_insert_scheduled_email_log.assert_called_once_with(
+        mock_cursor,
+        ANY,
+        ANY,
+        "Test state change",
+        ScheduledEmailStatus("scheduled"),
+        new_state,
+        id_,
+    )
+
+
+@patch("utils.database.update_email_state")
+def test_lock_email(mock_update_email_state: MagicMock) -> None:
+    # Arrange
+    id_ = uuid4()
+    template_id = uuid4()
+    email = ScheduledEmail(
+        id=id_,
+        created_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        last_updated_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        state=ScheduledEmailStatus("scheduled"),
+        scheduled_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        to_header=[""],
+        from_header="",
+        reply_to_header="",
+        cc_header=[""],
+        bcc_header=[""],
+        subject="",
+        body="",
+        template_id=template_id,
+    )
+    mock_cursor = MagicMock()
+
+    # Act
+    lock_email(email, mock_cursor)
+
+    # Assert
+    assert mock_update_email_state.called_once_with(
+        email, ScheduledEmailStatus.LOCKED, mock_cursor
+    )
+
+
+@patch("utils.database.update_email_state")
+def test_fail_email(mock_update_email_state: MagicMock) -> None:
+    # Arrange
+    id_ = uuid4()
+    template_id = uuid4()
+    email = ScheduledEmail(
+        id=id_,
+        created_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        last_updated_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        state=ScheduledEmailStatus("scheduled"),
+        scheduled_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        to_header=[""],
+        from_header="",
+        reply_to_header="",
+        cc_header=[""],
+        bcc_header=[""],
+        subject="",
+        body="",
+        template_id=template_id,
+    )
+    mock_cursor = MagicMock()
+
+    # Act
+    fail_email(email, "failure details", mock_cursor)
+
+    # Assert
+    assert mock_update_email_state.called_once_with(
+        email, ScheduledEmailStatus.FAILED, mock_cursor, details="failure details"
+    )
+
+
+@patch("utils.database.update_email_state")
+def test_succeed_email(mock_update_email_state: MagicMock) -> None:
+    # Arrange
+    id_ = uuid4()
+    template_id = uuid4()
+    email = ScheduledEmail(
+        id=id_,
+        created_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        last_updated_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        state=ScheduledEmailStatus("scheduled"),
+        scheduled_at=datetime.fromisoformat("2021-06-01T00:00:00+00:00"),
+        to_header=[""],
+        from_header="",
+        reply_to_header="",
+        cc_header=[""],
+        bcc_header=[""],
+        subject="",
+        body="",
+        template_id=template_id,
+    )
+    mock_cursor = MagicMock()
+
+    # Act
+    succeed_email(email, "success details", mock_cursor)
+
+    # Assert
+    assert mock_update_email_state.called_once_with(
+        email, ScheduledEmailStatus.LOCKED, mock_cursor, details="success details"
     )

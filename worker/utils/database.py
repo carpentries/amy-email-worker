@@ -12,6 +12,78 @@ from utils.types import (
 )
 
 
+class Db:
+    """Thin wrapper for DB queries. All methods are static and take a cursor
+    as a first argument, and every method executes a query and returns the cursor."""
+
+    @staticmethod
+    def select_scheduled_email(cursor: Cursor, id: UUID) -> Cursor:
+        return cursor.execute(
+            """
+            SELECT
+                id, created_at, last_updated_at, state, scheduled_at,
+                to_header, from_header, reply_to_header, cc_header, bcc_header,
+                subject, body, template_id
+            FROM emails_scheduledemail
+            WHERE id = %s
+            """,
+            (id,),
+        )
+
+    @staticmethod
+    def select_scheduled_emails(cursor: Cursor, timestamp: datetime) -> Cursor:
+        return cursor.execute(
+            """
+            SELECT
+                id, created_at, last_updated_at, state, scheduled_at,
+                to_header, from_header, reply_to_header, cc_header, bcc_header,
+                subject, body, template_id
+            FROM emails_scheduledemail
+            WHERE
+                (state = 'scheduled' OR state = 'failed')
+                AND scheduled_at <= %s
+            """,
+            (timestamp,),
+        )
+
+    @staticmethod
+    def update_scheduled_email_status(
+        cursor: Cursor, id: UUID, status: ScheduledEmailStatus
+    ) -> Cursor:
+        return cursor.execute(
+            """
+            UPDATE emails_scheduledemail SET state = %s WHERE id = %s
+            """,
+            (status.value, id),
+        )
+
+    @staticmethod
+    def insert_scheduled_email_log(
+        cursor: Cursor,
+        id: UUID,
+        timestamp: datetime,
+        details: str,
+        state_before: ScheduledEmailStatus,
+        state_after: ScheduledEmailStatus,
+        scheduled_email_id: UUID,
+    ) -> Cursor:
+        return cursor.execute(
+            """
+            INSERT INTO emails_scheduledemaillog
+            (id, created_at, details, state_before, state_after, scheduled_email_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                id,
+                timestamp,
+                details,
+                state_before.value,
+                state_after.value,
+                scheduled_email_id,
+            ),
+        )
+
+
 def read_database_credentials_from_ssm(stage: str) -> DatabaseCredentials:
     database_host_parameter = read_ssm_parameter(f"/{stage}/amy/database_host")
     database_port_parameter = read_ssm_parameter(f"/{stage}/amy/database_port")
@@ -62,18 +134,8 @@ def connection_string(credentials: DatabaseCredentials) -> str:
     )
 
 
-def fetch_email(id: UUID, cursor: Cursor) -> ScheduledEmail:
-    cursor.execute(
-        """
-        SELECT
-            id, created_at, last_updated_at, state, scheduled_at,
-            to_header, from_header, reply_to_header, cc_header, bcc_header,
-            subject, body, template_id
-        FROM emails_scheduledemail
-        WHERE id = %s
-        """,
-        (id,),
-    )
+def fetch_email_by_id(id: UUID, cursor: Cursor) -> ScheduledEmail:
+    Db.select_scheduled_email(cursor, id)
     record = cursor.fetchone()
     if not record:
         raise NotFoundError(f"Scheduled email {id} not found in DB")
@@ -81,21 +143,9 @@ def fetch_email(id: UUID, cursor: Cursor) -> ScheduledEmail:
     return ScheduledEmail(**record)
 
 
-def fetch_scheduled_emails(cursor: Cursor) -> list[ScheduledEmail]:
+def fetch_scheduled_emails_to_run(cursor: Cursor) -> list[ScheduledEmail]:
     now = datetime.now(tz=timezone.utc)
-    cursor.execute(
-        """
-        SELECT
-            id, created_at, last_updated_at, state, scheduled_at,
-            to_header, from_header, reply_to_header, cc_header, bcc_header,
-            subject, body, template_id
-        FROM emails_scheduledemail
-        WHERE
-            (state = 'scheduled' OR state = 'failed')
-            AND scheduled_at <= %s
-        """,
-        (now,),
-    )
+    Db.select_scheduled_emails(cursor, timestamp=now)
     records = [ScheduledEmail(**record) for record in cursor.fetchall()]
     return records
 
@@ -109,21 +159,11 @@ def update_email_state(
     now = datetime.now(tz=timezone.utc)
     id = email.id
     old_state = email.state
-    cursor.execute(
-        """
-        UPDATE emails_scheduledemail SET state = %s WHERE id = %s
-        """,
-        (new_state.value, id),
+    Db.update_scheduled_email_status(cursor, id, new_state)
+    Db.insert_scheduled_email_log(
+        cursor, uuid4(), now, details, old_state, new_state, id
     )
-    cursor.execute(
-        """
-        INSERT INTO emails_scheduledemaillog
-        (id, created_at, details, state_before, state_after, scheduled_email_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        """,
-        (uuid4(), now, details, old_state.value, new_state.value, id),
-    )
-    return fetch_email(id, cursor)
+    return fetch_email_by_id(id, cursor)
 
 
 def lock_email(email: ScheduledEmail, cursor: Cursor) -> ScheduledEmail:

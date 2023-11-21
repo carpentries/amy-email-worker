@@ -7,7 +7,7 @@ from psycopg.rows import dict_row
 from utils.database import (
     connection_string,
     fail_email,
-    fetch_scheduled_emails,
+    fetch_scheduled_emails_to_run,
     lock_email,
     read_database_credentials_from_ssm,
     succeed_email,
@@ -39,7 +39,7 @@ def handler(event: dict, context: LambdaContext) -> WorkerOutput:
         connection_string(database_credentials), row_factory=dict_row
     ) as connection:
         with connection.cursor() as cur:
-            emails = fetch_scheduled_emails(cur)
+            emails = fetch_scheduled_emails_to_run(cur)
 
             for email in emails:
                 id = email.id
