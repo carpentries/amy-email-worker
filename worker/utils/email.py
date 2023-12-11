@@ -9,9 +9,9 @@ def send_email(
     overwrite_outgoing_emails: str | None = None,
 ):
     url = f"https://api.mailgun.net/v3/{credentials.MAILGUN_SENDER_DOMAIN}/messages"
-    to = email["to_header"]
-    cc = email["cc_header"]
-    bcc = email["bcc_header"]
+    to = email.to_header
+    cc = email.cc_header
+    bcc = email.bcc_header
 
     if overwrite_outgoing_emails:
         to = [overwrite_outgoing_emails]
@@ -22,12 +22,12 @@ def send_email(
         url,
         auth=("api", credentials.MAILGUN_API_KEY),
         data={
-            "from": email["from_header"],
+            "from": email.from_header,
             "to": to,
-            "h:Reply-To": email["reply_to_header"],
+            "h:Reply-To": email.reply_to_header,
             "cc": cc,
             "bcc": bcc,
-            "subject": email["subject"],
-            "html": email["body"],
+            "subject": email.subject,
+            "html": email.body,
         },
     )
