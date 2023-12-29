@@ -87,6 +87,7 @@ class Db:
 
 
 def read_database_credentials_from_ssm(stage: str) -> DatabaseCredentials:
+    # TODO: turn into async
     database_host_parameter = read_ssm_parameter(f"/{stage}/amy/database_host")
     database_port_parameter = read_ssm_parameter(f"/{stage}/amy/database_port")
     database_name_parameter = read_ssm_parameter(f"/{stage}/amy/database_name")
