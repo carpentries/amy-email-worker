@@ -1,13 +1,14 @@
-import requests
+from httpx import AsyncClient, Response
 
 from utils.types import MailgunCredentials, ScheduledEmail
 
 
-def send_email(
+async def send_email(
+    client: AsyncClient,
     email: ScheduledEmail,
     credentials: MailgunCredentials,
     overwrite_outgoing_emails: str | None = None,
-):
+) -> Response:
     url = f"https://api.mailgun.net/v3/{credentials.MAILGUN_SENDER_DOMAIN}/messages"
     to = email.to_header
     cc = email.cc_header
@@ -18,7 +19,7 @@ def send_email(
         cc = []
         bcc = []
 
-    return requests.post(
+    return await client.post(
         url,
         auth=("api", credentials.MAILGUN_API_KEY),
         data={

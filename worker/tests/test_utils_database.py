@@ -1,5 +1,5 @@
 from datetime import datetime
-from unittest.mock import MagicMock, patch, call, ANY
+from unittest.mock import AsyncMock, MagicMock, patch, call, ANY
 from uuid import uuid4
 
 import pytest
@@ -75,12 +75,13 @@ def test_connection_string() -> None:
     assert connection_str == expected_connection_string
 
 
+@pytest.mark.asyncio
 @patch.object(Db, "select_scheduled_email")
-def test_fetch_email_by_id(mock_select_scheduled_email: MagicMock) -> None:
+async def test_fetch_email_by_id(mock_select_scheduled_email: MagicMock) -> None:
     # Arrange
     id_ = uuid4()
     template_id = uuid4()
-    mock_cursor = MagicMock()
+    mock_cursor = AsyncMock()
     mock_cursor.fetchone.return_value = {
         "id": id_,
         "created_at": "2021-06-01T00:00:00+00:00",
@@ -98,7 +99,7 @@ def test_fetch_email_by_id(mock_select_scheduled_email: MagicMock) -> None:
     }
 
     # Act
-    result = fetch_email_by_id(id_, mock_cursor)
+    result = await fetch_email_by_id(id_, mock_cursor)
 
     # Assert
     mock_select_scheduled_email.assert_called_once_with(mock_cursor, id_)
@@ -119,25 +120,27 @@ def test_fetch_email_by_id(mock_select_scheduled_email: MagicMock) -> None:
     )
 
 
-def test_fetch_email_by_id__failed() -> None:
+@pytest.mark.asyncio
+async def test_fetch_email_by_id__failed() -> None:
     # Arrange
     id_ = uuid4()
-    mock_cursor = MagicMock()
+    mock_cursor = AsyncMock()
     mock_cursor.fetchone.return_value = None
 
     # Act & Assert
     with pytest.raises(NotFoundError):
-        fetch_email_by_id(id_, mock_cursor)
+        await fetch_email_by_id(id_, mock_cursor)
 
 
+@pytest.mark.asyncio
 @patch.object(Db, "select_scheduled_emails")
-def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -> None:
+async def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -> None:
     # Arrange
     id1 = uuid4()
     id2 = uuid4()
     template_id1 = uuid4()
     template_id2 = uuid4()
-    mock_cursor = MagicMock()
+    mock_cursor = AsyncMock()
     mock_cursor.fetchall.return_value = [
         {
             "id": id1,
@@ -172,7 +175,7 @@ def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -> None
     ]
 
     # Act
-    result = fetch_scheduled_emails_to_run(mock_cursor)
+    result = await fetch_scheduled_emails_to_run(mock_cursor)
 
     # Assert
     mock_select_scheduled_emails.assert_called_once_with(mock_cursor, timestamp=ANY)
@@ -210,10 +213,11 @@ def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -> None
     ]
 
 
+@pytest.mark.asyncio
 @patch("utils.database.fetch_email_by_id")
 @patch.object(Db, "update_scheduled_email_status")
 @patch.object(Db, "insert_scheduled_email_log")
-def test_update_email_state(
+async def test_update_email_state(
     mock_insert_scheduled_email_log: MagicMock,
     mock_update_scheduled_email_status: MagicMock,
     mock_fetch_email: MagicMock,
@@ -237,14 +241,14 @@ def test_update_email_state(
         template_id=template_id,
     )
     new_state = ScheduledEmailStatus("failed")
-    mock_cursor = MagicMock()
+    mock_cursor = AsyncMock()
 
     fetched = email.model_copy()
     fetched.state = ScheduledEmailStatus("failed")
     mock_fetch_email.return_value = fetched
 
     # Act
-    result = update_email_state(
+    result = await update_email_state(
         email,
         new_state,
         mock_cursor,
@@ -281,8 +285,9 @@ def test_update_email_state(
     )
 
 
+@pytest.mark.asyncio
 @patch("utils.database.update_email_state")
-def test_lock_email(mock_update_email_state: MagicMock) -> None:
+async def test_lock_email(mock_update_email_state: AsyncMock) -> None:
     # Arrange
     id_ = uuid4()
     template_id = uuid4()
@@ -301,19 +306,20 @@ def test_lock_email(mock_update_email_state: MagicMock) -> None:
         body="",
         template_id=template_id,
     )
-    mock_cursor = MagicMock()
+    mock_cursor = AsyncMock()
 
     # Act
-    lock_email(email, mock_cursor)
+    await lock_email(email, mock_cursor)
 
     # Assert
-    assert mock_update_email_state.called_once_with(
+    mock_update_email_state.assert_awaited_once_with(
         email, ScheduledEmailStatus.LOCKED, mock_cursor
     )
 
 
+@pytest.mark.asyncio
 @patch("utils.database.update_email_state")
-def test_fail_email(mock_update_email_state: MagicMock) -> None:
+async def test_fail_email(mock_update_email_state: AsyncMock) -> None:
     # Arrange
     id_ = uuid4()
     template_id = uuid4()
@@ -332,19 +338,20 @@ def test_fail_email(mock_update_email_state: MagicMock) -> None:
         body="",
         template_id=template_id,
     )
-    mock_cursor = MagicMock()
+    mock_cursor = AsyncMock()
 
     # Act
-    fail_email(email, "failure details", mock_cursor)
+    await fail_email(email, "failure details", mock_cursor)
 
     # Assert
-    assert mock_update_email_state.called_once_with(
+    mock_update_email_state.assert_awaited_once_with(
         email, ScheduledEmailStatus.FAILED, mock_cursor, details="failure details"
     )
 
 
+@pytest.mark.asyncio
 @patch("utils.database.update_email_state")
-def test_succeed_email(mock_update_email_state: MagicMock) -> None:
+async def test_succeed_email(mock_update_email_state: AsyncMock) -> None:
     # Arrange
     id_ = uuid4()
     template_id = uuid4()
@@ -363,12 +370,12 @@ def test_succeed_email(mock_update_email_state: MagicMock) -> None:
         body="",
         template_id=template_id,
     )
-    mock_cursor = MagicMock()
+    mock_cursor = AsyncMock()
 
     # Act
-    succeed_email(email, "success details", mock_cursor)
+    await succeed_email(email, "success details", mock_cursor)
 
     # Assert
-    assert mock_update_email_state.called_once_with(
-        email, ScheduledEmailStatus.LOCKED, mock_cursor, details="success details"
+    mock_update_email_state.assert_awaited_once_with(
+        email, ScheduledEmailStatus.SUCCEEDED, mock_cursor, details="success details"
     )
