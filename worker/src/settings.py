@@ -1,7 +1,7 @@
 import os
 
-from utils.ssm import get_parameter_value, read_ssm_parameter
-from utils.types import MailgunCredentials, Settings
+from src.ssm import get_parameter_value, read_ssm_parameter
+from src.types import MailgunCredentials, Settings
 
 
 def read_settings_from_env() -> Settings:

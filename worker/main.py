@@ -8,7 +8,7 @@ import psycopg.cursor_async
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from psycopg.rows import dict_row
 
-from utils.database import (
+from src.database import (
     connection_string,
     fail_email,
     fetch_scheduled_emails_to_run,
@@ -17,9 +17,9 @@ from utils.database import (
     succeed_email,
     update_email_state,
 )
-from utils.email import send_email
-from utils.settings import read_mailgun_credentials, read_settings_from_env
-from utils.types import (
+from src.email import send_email
+from src.settings import read_mailgun_credentials, read_settings_from_env
+from src.types import (
     MailgunCredentials,
     ScheduledEmail,
     WorkerOutput,

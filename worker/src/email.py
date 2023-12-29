@@ -1,6 +1,6 @@
 from httpx import AsyncClient, Response
 
-from utils.types import MailgunCredentials, ScheduledEmail
+from src.types import MailgunCredentials, ScheduledEmail
 
 
 async def send_email(

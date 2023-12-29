@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from utils.database import (
+from src.database import (
     Db,
     read_database_credentials_from_ssm,
     connection_string,
@@ -15,7 +15,7 @@ from utils.database import (
     fail_email,
     succeed_email,
 )
-from utils.types import (
+from src.types import (
     DatabaseCredentials,
     NotFoundError,
     ScheduledEmail,

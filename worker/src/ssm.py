@@ -1,7 +1,7 @@
 from typing import Optional
 
 import boto3
-from utils.types import SSMParameter
+from src.types import SSMParameter
 
 
 def read_ssm_parameter(path: str) -> Optional[SSMParameter]:

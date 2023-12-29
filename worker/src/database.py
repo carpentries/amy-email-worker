@@ -3,8 +3,8 @@ from uuid import UUID, uuid4
 
 from psycopg.cursor_async import AsyncCursor
 
-from utils.ssm import get_parameter_value, read_ssm_parameter
-from utils.types import (
+from src.ssm import get_parameter_value, read_ssm_parameter
+from src.types import (
     DatabaseCredentials,
     NotFoundError,
     ScheduledEmail,
@@ -87,7 +87,6 @@ class Db:
 
 
 def read_database_credentials_from_ssm(stage: str) -> DatabaseCredentials:
-    # TODO: turn into async
     database_host_parameter = read_ssm_parameter(f"/{stage}/amy/database_host")
     database_port_parameter = read_ssm_parameter(f"/{stage}/amy/database_port")
     database_name_parameter = read_ssm_parameter(f"/{stage}/amy/database_name")
