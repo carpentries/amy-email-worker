@@ -59,12 +59,14 @@ class ScheduledEmail(BaseModel):
     state: ScheduledEmailStatus
     scheduled_at: datetime
     to_header: list[str]
+    to_header_context_json: str  # JSON, TODO: validate what API/DRF returns
     from_header: str
     reply_to_header: str
     cc_header: list[str]
     bcc_header: list[str]
     subject: str
     body: str
+    context_json: str  # JSON, TODO: validate what API/DRF returns
     template_id: UUID
 
 
