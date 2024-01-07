@@ -1,6 +1,37 @@
+from typing import Any
+
+from django.template import Engine, Context
 from httpx import AsyncClient, Response
 
-from src.types import MailgunCredentials, ScheduledEmail
+from src.types import (
+    MailgunCredentials,
+    ScheduledEmail,
+    RenderedScheduledEmail,
+)
+
+
+def render_django_template(
+    engine: Engine, template: str, context: dict[str, Any]
+) -> str:
+    return engine.from_string(template).render(Context(context))
+
+
+def render_email(
+    email: ScheduledEmail,
+    context: dict[str, Any],
+    recipients: list[str],
+) -> RenderedScheduledEmail:
+    engine = Engine.get_default()
+    subject_rendered = render_django_template(engine, email.subject, context)
+    body_rendered = render_django_template(engine, email.body, context)
+    to_header_rendered = [recipient for recipient in recipients if recipient]
+
+    return RenderedScheduledEmail(
+        **email.model_dump(),
+        to_header_rendered=to_header_rendered,
+        subject_rendered=subject_rendered,
+        body_rendered=body_rendered,
+    )
 
 
 async def send_email(
