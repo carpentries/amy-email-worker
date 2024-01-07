@@ -21,6 +21,18 @@ from src.types import (
 logger = logging.getLogger("amy-email-worker")
 
 
+async def return_fail_email(
+    email: ScheduledEmail, details: str, cursor: psycopg.cursor_async.AsyncCursor[Any]
+) -> WorkerOutputEmail:
+    """Auxilary function to log failed info and return failed email struct."""
+    logger.info(details)
+    failed_email = await fail_email(email, details, cursor)
+    return {
+        "email": failed_email.model_dump(),
+        "status": failed_email.state,
+    }
+
+
 async def handle_email(
     email: ScheduledEmail,
     mailgun_credentials: MailgunCredentials,
@@ -31,10 +43,11 @@ async def handle_email(
     id = email.id
     logger.info(f"Working on email {id}.")
 
-    updated_email = await lock_email(email, cursor)
-    logger.info(f"Locked email {id}. Attempting to send.")
+    locked_email = await lock_email(email, cursor)
+    logger.info(f"Locked email {id}.")
 
     try:
+        logger.info(f"Attempting to send email {id}.")
         response = await send_email(
             client,
             updated_email,
@@ -47,18 +60,15 @@ async def handle_email(
         response.raise_for_status()
 
     except Exception as exc:
-        logger.info(f"Failed to send email {id}. Error: {exc}")
-        failed_email = await fail_email(
-            updated_email, f"Email failed to send. Error: {exc}", cursor
+        return await return_fail_email(
+            locked_email,
+            f"Failed to send email {id}. Error: {exc}",
+            cursor,
         )
-        return {
-            "email": failed_email.model_dump(),
-            "status": failed_email.state,
-        }
 
     else:
         succeeded_email = await succeed_email(
-            updated_email, "Email sent successfully.", cursor
+            locked_email, "Email sent successfully.", cursor
         )
         await update_email_state(
             succeeded_email,
