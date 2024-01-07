@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any, Literal, Optional, TypedDict
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 
 class NotFoundError(Exception):
@@ -70,6 +70,12 @@ class ScheduledEmail(BaseModel):
     template_id: UUID
 
 
+class RenderedScheduledEmail(ScheduledEmail):
+    to_header_rendered: list[str]
+    subject_rendered: str
+    body_rendered: str
+
+
 class WorkerOutputEmail(TypedDict):
     email: dict[str, dict[str, Any] | ScheduledEmailStatus]
     status: ScheduledEmailStatus
@@ -77,3 +83,14 @@ class WorkerOutputEmail(TypedDict):
 
 class WorkerOutput(TypedDict):
     emails: list[WorkerOutputEmail]
+
+
+class SinglePropertyLinkModel(BaseModel):
+    # custom URI for links to individual models in API, e.g. "api:person#1234"
+    api_uri: str
+    property: str
+
+
+ToHeaderModel = RootModel[list[SinglePropertyLinkModel]]
+
+ContextModel = RootModel[dict[str, str | list[str] | str]]
