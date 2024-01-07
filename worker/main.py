@@ -66,6 +66,7 @@ async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
                     overwrite_outgoing_emails,
                     cursor,
                     client,
+                    stage,
                 )
                 for email in emails
             ]
