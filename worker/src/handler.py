@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import httpx
 import psycopg.cursor_async
@@ -24,7 +25,7 @@ async def handle_email(
     email: ScheduledEmail,
     mailgun_credentials: MailgunCredentials,
     overwrite_outgoing_emails: str,
-    cursor: psycopg.cursor_async.AsyncCursor,
+    cursor: psycopg.cursor_async.AsyncCursor[Any],
     client: httpx.AsyncClient,
 ) -> WorkerOutputEmail:
     id = email.id

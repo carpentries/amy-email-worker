@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID, uuid4
 
 from psycopg.cursor_async import AsyncCursor
@@ -17,7 +18,9 @@ class Db:
     as a first argument, and every method executes a query and returns the cursor."""
 
     @staticmethod
-    async def select_scheduled_email(cursor: AsyncCursor, id: UUID) -> AsyncCursor:
+    async def select_scheduled_email(
+        cursor: AsyncCursor[Any], id: UUID
+    ) -> AsyncCursor[Any]:
         return await cursor.execute(
             """
             SELECT
@@ -32,8 +35,8 @@ class Db:
 
     @staticmethod
     async def select_scheduled_emails(
-        cursor: AsyncCursor, timestamp: datetime
-    ) -> AsyncCursor:
+        cursor: AsyncCursor[Any], timestamp: datetime
+    ) -> AsyncCursor[Any]:
         return await cursor.execute(
             """
             SELECT
@@ -50,8 +53,8 @@ class Db:
 
     @staticmethod
     async def update_scheduled_email_status(
-        cursor: AsyncCursor, id: UUID, status: ScheduledEmailStatus
-    ) -> AsyncCursor:
+        cursor: AsyncCursor[Any], id: UUID, status: ScheduledEmailStatus
+    ) -> AsyncCursor[Any]:
         return await cursor.execute(
             """
             UPDATE emails_scheduledemail SET state = %s WHERE id = %s
@@ -61,14 +64,14 @@ class Db:
 
     @staticmethod
     async def insert_scheduled_email_log(
-        cursor: AsyncCursor,
+        cursor: AsyncCursor[Any],
         id: UUID,
         timestamp: datetime,
         details: str,
         state_before: ScheduledEmailStatus,
         state_after: ScheduledEmailStatus,
         scheduled_email_id: UUID,
-    ) -> AsyncCursor:
+    ) -> AsyncCursor[Any]:
         return await cursor.execute(
             """
             INSERT INTO emails_scheduledemaillog
@@ -137,7 +140,7 @@ def connection_string(credentials: DatabaseCredentials) -> str:
     )
 
 
-async def fetch_email_by_id(id: UUID, cursor: AsyncCursor) -> ScheduledEmail:
+async def fetch_email_by_id(id: UUID, cursor: AsyncCursor[Any]) -> ScheduledEmail:
     await Db.select_scheduled_email(cursor, id)
     record = await cursor.fetchone()
     if not record:
@@ -146,7 +149,9 @@ async def fetch_email_by_id(id: UUID, cursor: AsyncCursor) -> ScheduledEmail:
     return ScheduledEmail(**record)
 
 
-async def fetch_scheduled_emails_to_run(cursor: AsyncCursor) -> list[ScheduledEmail]:
+async def fetch_scheduled_emails_to_run(
+    cursor: AsyncCursor[Any],
+) -> list[ScheduledEmail]:
     now = datetime.now(tz=timezone.utc)
     await Db.select_scheduled_emails(cursor, timestamp=now)
     records = [ScheduledEmail(**record) for record in await cursor.fetchall()]
@@ -156,7 +161,7 @@ async def fetch_scheduled_emails_to_run(cursor: AsyncCursor) -> list[ScheduledEm
 async def update_email_state(
     email: ScheduledEmail,
     new_state: ScheduledEmailStatus,
-    cursor: AsyncCursor,
+    cursor: AsyncCursor[Any],
     details: str = "State changed by worker",
 ) -> ScheduledEmail:
     now = datetime.now(tz=timezone.utc)
@@ -169,12 +174,12 @@ async def update_email_state(
     return await fetch_email_by_id(id, cursor)
 
 
-async def lock_email(email: ScheduledEmail, cursor: AsyncCursor) -> ScheduledEmail:
+async def lock_email(email: ScheduledEmail, cursor: AsyncCursor[Any]) -> ScheduledEmail:
     return await update_email_state(email, ScheduledEmailStatus.LOCKED, cursor)
 
 
 async def fail_email(
-    email: ScheduledEmail, details: str, cursor: AsyncCursor
+    email: ScheduledEmail, details: str, cursor: AsyncCursor[Any]
 ) -> ScheduledEmail:
     return await update_email_state(
         email, ScheduledEmailStatus.FAILED, cursor, details=details
@@ -182,7 +187,7 @@ async def fail_email(
 
 
 async def succeed_email(
-    email: ScheduledEmail, details: str, cursor: AsyncCursor
+    email: ScheduledEmail, details: str, cursor: AsyncCursor[Any]
 ) -> ScheduledEmail:
     return await update_email_state(
         email, ScheduledEmailStatus.SUCCEEDED, cursor, details=details

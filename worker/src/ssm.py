@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 import boto3
 from src.types import SSMParameter
@@ -10,7 +10,7 @@ def read_ssm_parameter(path: str) -> Optional[SSMParameter]:
     response = ssm_client.get_parameter(Name=path)
 
     if "Parameter" in response and response["Parameter"]:
-        return response["Parameter"]
+        return cast(SSMParameter, response["Parameter"])
 
     return None
 
