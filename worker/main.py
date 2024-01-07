@@ -24,11 +24,13 @@ logger.setLevel(logging.INFO)  # use logging.DEBUG to see boto3 logs
 # TODO:
 # 1. rewrite to async ✅
 # 2. make sure tests pass (even with async on) ✅
-# 3. add mapping for API endpoints
-# 4. circle back to AMY to update the endpoints
-# 5. create schemas for the endpoints
-# 6. add endpoints for managing emails
-# 7. rewrite logic from handler below to use the new email endpoints
+# 3. add mapping for API endpoints ✅
+# 4. fetch and render emails ✅
+# 5. write unit tests!
+# 6. create new simplified API in AMY
+# 7. create schemas for the endpoints
+# 8. add endpoints for managing emails
+# 9. rewrite email logic from handler below to use the new email endpoints
 
 
 async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
