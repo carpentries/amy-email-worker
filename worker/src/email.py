@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.template import Engine, Context
+from jinja2 import Environment
 from httpx import AsyncClient, Response
 
 from src.types import (
@@ -10,20 +10,20 @@ from src.types import (
 )
 
 
-def render_django_template(
-    engine: Engine, template: str, context: dict[str, Any]
+def render_template_from_string(
+    engine: Environment, template: str, context: dict[str, Any]
 ) -> str:
-    return engine.from_string(template).render(Context(context))
+    return engine.from_string(template).render(context)
 
 
 def render_email(
+    engine: Environment,
     email: ScheduledEmail,
     context: dict[str, Any],
     recipients: list[str],
 ) -> RenderedScheduledEmail:
-    engine = Engine.get_default()
-    subject_rendered = render_django_template(engine, email.subject, context)
-    body_rendered = render_django_template(engine, email.body, context)
+    subject_rendered = render_template_from_string(engine, email.subject, context)
+    body_rendered = render_template_from_string(engine, email.body, context)
     to_header_rendered = [recipient for recipient in recipients if recipient]
 
     return RenderedScheduledEmail(

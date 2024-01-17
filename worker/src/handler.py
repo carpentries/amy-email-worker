@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any
 
+from jinja2 import Environment, DebugUndefined
 import httpx
 import psycopg.cursor_async
 
@@ -81,7 +82,10 @@ async def handle_email(
 
     # Render email subject, body and recipients using JSON data from the API.
     logger.info(f"Rendering email {id}.")
-    rendered_email = render_email(locked_email, context_dict, recipient_addresses_list)
+    engine = Environment(autoescape=True, undefined=DebugUndefined)
+    rendered_email = render_email(
+        engine, locked_email, context_dict, recipient_addresses_list
+    )
 
     try:
         logger.info(f"Attempting to send email {id}.")
