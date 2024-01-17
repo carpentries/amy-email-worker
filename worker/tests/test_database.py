@@ -23,7 +23,7 @@ from src.types import (
 )
 
 
-@patch("utils.database.read_ssm_parameter")
+@patch("src.database.read_ssm_parameter")
 def test_read_database_credentials_from_ssm(mock_read_ssm_parameter: MagicMock) -> None:
     # Arrange
     mock_read_ssm_parameter.side_effect = [
@@ -89,12 +89,14 @@ async def test_fetch_email_by_id(mock_select_scheduled_email: MagicMock) -> None
         "state": "scheduled",
         "scheduled_at": "2021-06-01T00:00:00+00:00",
         "to_header": [""],
+        "to_header_context_json": "",
         "from_header": "",
         "reply_to_header": "",
         "cc_header": [""],
         "bcc_header": [""],
         "subject": "",
         "body": "",
+        "context_json": "",
         "template_id": template_id,
     }
 
@@ -151,12 +153,14 @@ async def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -
             "state": "scheduled",
             "scheduled_at": "2021-06-01T00:00:00+00:00",
             "to_header": [""],
+            "to_header_context_json": "",
             "from_header": "",
             "reply_to_header": "",
             "cc_header": [""],
             "bcc_header": [""],
             "subject": "",
             "body": "",
+            "context_json": "",
             "template_id": template_id1,
         },
         {
@@ -166,12 +170,14 @@ async def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -
             "state": "failed",
             "scheduled_at": "2022-06-01T00:00:00+00:00",
             "to_header": [""],
+            "to_header_context_json": "",
             "from_header": "",
             "reply_to_header": "",
             "cc_header": [""],
             "bcc_header": [""],
             "subject": "",
             "body": "",
+            "context_json": "",
             "template_id": template_id2,
         },
     ]
@@ -220,7 +226,7 @@ async def test_fetch_scheduled_emails(mock_select_scheduled_emails: MagicMock) -
 
 
 @pytest.mark.asyncio
-@patch("utils.database.fetch_email_by_id")
+@patch("src.database.fetch_email_by_id")
 @patch.object(Db, "update_scheduled_email_status")
 @patch.object(Db, "insert_scheduled_email_log")
 async def test_update_email_state(
@@ -296,7 +302,7 @@ async def test_update_email_state(
 
 
 @pytest.mark.asyncio
-@patch("utils.database.update_email_state")
+@patch("src.database.update_email_state")
 async def test_lock_email(mock_update_email_state: AsyncMock) -> None:
     # Arrange
     id_ = uuid4()
@@ -330,7 +336,7 @@ async def test_lock_email(mock_update_email_state: AsyncMock) -> None:
 
 
 @pytest.mark.asyncio
-@patch("utils.database.update_email_state")
+@patch("src.database.update_email_state")
 async def test_fail_email(mock_update_email_state: AsyncMock) -> None:
     # Arrange
     id_ = uuid4()
@@ -364,7 +370,7 @@ async def test_fail_email(mock_update_email_state: AsyncMock) -> None:
 
 
 @pytest.mark.asyncio
-@patch("utils.database.update_email_state")
+@patch("src.database.update_email_state")
 async def test_succeed_email(mock_update_email_state: AsyncMock) -> None:
     # Arrange
     id_ = uuid4()
