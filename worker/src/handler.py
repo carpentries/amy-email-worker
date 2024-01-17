@@ -18,6 +18,7 @@ from src.types import (
     MailgunCredentials,
     ScheduledEmail,
     ToHeaderModel,
+    Stage,
     WorkerOutputEmail,
 )
 
@@ -42,7 +43,7 @@ async def handle_email(
     overwrite_outgoing_emails: str,
     cursor: psycopg.cursor_async.AsyncCursor[Any],
     client: httpx.AsyncClient,
-    stage: str,
+    stage: Stage,
 ) -> WorkerOutputEmail:
     id = email.id
     logger.info(f"Working on email {id}.")

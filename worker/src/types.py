@@ -6,6 +6,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, RootModel
 
+BasicTypes = str | int | float | bool | None
+Stage = Literal["prod", "staging"]
+
 
 class NotFoundError(Exception):
     pass
@@ -25,7 +28,7 @@ class SSMParameter(TypedDict, total=False):
 
 @dataclass(frozen=True)
 class Settings:
-    STAGE: str
+    STAGE: Stage
     OVERWRITE_OUTGOING_EMAILS: str
 
 

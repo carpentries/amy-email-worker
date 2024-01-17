@@ -5,15 +5,15 @@ from urllib.parse import urlparse, ParseResult
 
 import httpx
 
+from src.types import Stage, BasicTypes
+
 logger = logging.getLogger("amy-email-worker")
 
-BASIC_TYPES = str | int | float | bool | None
 
-
-def map_api_uri_to_url(api_uri: str, stage: str) -> str:
+def map_api_uri_to_url(api_uri: str, stage: Stage) -> str:
     logger.info(f"Mapping API URI {api_uri!r} onto URL.")
 
-    stage_to_host = {
+    stage_to_host: dict[Stage, str] = {
         "prod": "amy.carpentries.org",
         "staging": "test-amy2.carpentries.org",
     }
@@ -37,7 +37,7 @@ def map_api_uri_to_url(api_uri: str, stage: str) -> str:
             raise ValueError(f"Unsupported URI {api_uri!r}.")
 
 
-def scalar_value_from_uri(uri: str) -> BASIC_TYPES:
+def scalar_value_from_uri(uri: str) -> BasicTypes:
     mapping = {"str": str, "int": int, "float": float, "bool": bool}
 
     match urlparse(uri):
@@ -59,7 +59,7 @@ def scalar_value_from_uri(uri: str) -> BASIC_TYPES:
 async def fetch_model(
     api_uri: str,
     client: httpx.AsyncClient,
-    stage: str = "staging",
+    stage: Stage,
 ) -> dict[str, Any]:
     api_url = map_api_uri_to_url(api_uri, stage)
     logger.info(f"Fetching entity from {api_url}.")
@@ -74,11 +74,11 @@ async def fetch_model_field(
     api_uri: str,
     property: str,
     client: httpx.AsyncClient,
-    stage: str = "staging",
+    stage: Stage,
 ) -> str:
     logger.info(f"Fetching {property=} from model {api_uri!r}.")
 
-    model = await fetch_model(api_uri, client, stage=stage)
+    model = await fetch_model(api_uri, client, stage)
     raw_property = model[property]
 
     logger.info(f"{api_uri} = {raw_property!r}.")
@@ -87,8 +87,8 @@ async def fetch_model_field(
 
 
 async def context_entry(
-    uri: str | list[str], client: httpx.AsyncClient, stage: str = "staging"
-) -> dict[str, Any] | list[dict[str, Any]] | BASIC_TYPES:
+    uri: str | list[str], client: httpx.AsyncClient, stage: Stage
+) -> dict[str, Any] | list[dict[str, Any]] | BasicTypes:
     if isinstance(uri, list):
         return cast(
             list[dict[str, Any]],
