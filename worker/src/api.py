@@ -17,10 +17,7 @@ def map_api_uri_to_url(api_uri: str, stage: Stage) -> str:
         "prod": "amy.carpentries.org",
         "staging": "test-amy2.carpentries.org",
     }
-    try:
-        host = stage_to_host[stage]
-    except KeyError as exc:
-        raise ValueError(f"Unknown stage {stage!r}.") from exc
+    host = stage_to_host[stage]
 
     match urlparse(api_uri):
         case ParseResult(
@@ -31,14 +28,19 @@ def map_api_uri_to_url(api_uri: str, stage: Stage) -> str:
         case ParseResult(
             scheme="api", netloc="", path=model, params="", query="", fragment=id_
         ):
-            return f"https://{host}/api/v1/{model}/{id_}"
+            return f"https://{host}/api/v1/{model}/{id_}"  # TODO: update to v2
 
         case _:
             raise ValueError(f"Unsupported URI {api_uri!r}.")
 
 
 def scalar_value_from_uri(uri: str) -> BasicTypes:
-    mapping = {"str": str, "int": int, "float": float, "bool": bool}
+    mapping = {
+        "str": str,
+        "int": int,
+        "float": float,
+        "bool": lambda x: x.lower() == "true",
+    }
 
     match urlparse(uri):
         case ParseResult(
@@ -51,6 +53,8 @@ def scalar_value_from_uri(uri: str) -> BasicTypes:
                 return cast(str | int | float | bool, mapping[path](value))
             except KeyError as exc:
                 raise ValueError(f"Unsupported scalar type {path!r}.") from exc
+            except ValueError as exc:
+                raise ValueError(f"Failed to parse {value!r} from {uri!r}.") from exc
 
         case _:
             raise ValueError(f"Unsupported URI {uri!r}.")
@@ -109,4 +113,4 @@ async def context_entry(
             return await fetch_model(uri, client, stage)
 
         case _:
-            return await fetch_model_field(uri, "name", client)
+            raise ValueError(f"Unsupported URI {uri!r} for context generation.")
