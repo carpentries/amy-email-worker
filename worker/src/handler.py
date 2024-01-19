@@ -2,24 +2,19 @@ import json
 import logging
 from typing import Any
 
-from jinja2 import Environment, DebugUndefined
 import httpx
 import psycopg.cursor_async
+from jinja2 import DebugUndefined, Environment
 
 from src.api import context_entry, fetch_model_field
-from src.database import (
-    fail_email,
-    lock_email,
-    succeed_email,
-    update_email_state,
-)
+from src.database import fail_email, lock_email, succeed_email, update_email_state
 from src.email import render_email, send_email
 from src.types import (
     ContextModel,
     MailgunCredentials,
     ScheduledEmail,
-    ToHeaderModel,
     Stage,
+    ToHeaderModel,
     WorkerOutputEmail,
 )
 

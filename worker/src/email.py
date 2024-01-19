@@ -1,13 +1,9 @@
 from typing import Any
 
-from jinja2 import Environment
 from httpx import AsyncClient, Response
+from jinja2 import Environment
 
-from src.types import (
-    MailgunCredentials,
-    ScheduledEmail,
-    RenderedScheduledEmail,
-)
+from src.types import MailgunCredentials, RenderedScheduledEmail, ScheduledEmail
 
 
 def render_template_from_string(

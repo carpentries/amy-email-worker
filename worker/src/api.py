@@ -1,11 +1,11 @@
 import asyncio
 import logging
-from typing import Any, cast
-from urllib.parse import urlparse, ParseResult
+from typing import Any, Callable, cast
+from urllib.parse import ParseResult, urlparse
 
 import httpx
 
-from src.types import Stage, BasicTypes
+from src.types import BasicTypes, Stage
 
 logger = logging.getLogger("amy-email-worker")
 
@@ -35,7 +35,7 @@ def map_api_uri_to_url(api_uri: str, stage: Stage) -> str:
 
 
 def scalar_value_from_uri(uri: str) -> BasicTypes:
-    mapping = {
+    mapping: dict[str, Callable[[Any], Any]] = {
         "str": str,
         "int": int,
         "float": float,

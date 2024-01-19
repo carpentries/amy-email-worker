@@ -1,14 +1,16 @@
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from src.api import (
-    map_api_uri_to_url,
-    scalar_value_from_uri,
+    context_entry,
     fetch_model,
     fetch_model_field,
-    context_entry,
+    map_api_uri_to_url,
+    scalar_value_from_uri,
 )
+from src.types import Stage
 
 
 # Arrange
@@ -27,7 +29,7 @@ from src.api import (
         ),
     ],
 )
-def test_map_api_uri_to_url(uri, stage, expected) -> None:
+def test_map_api_uri_to_url(uri: str, stage: Stage, expected: str) -> None:
     # Act
     result = map_api_uri_to_url(uri, stage)
     # Assert
@@ -37,7 +39,7 @@ def test_map_api_uri_to_url(uri, stage, expected) -> None:
 def test_map_api_uri_to_url__unexpected_scheme() -> None:
     # Arrange
     uri = "value:int#123456"
-    stage = "prod"
+    stage: Stage = "prod"
     # Act & Assert
     with pytest.raises(
         ValueError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
@@ -48,7 +50,7 @@ def test_map_api_uri_to_url__unexpected_scheme() -> None:
 def test_map_api_uri_to_url__unsupported_uri() -> None:
     # Arrange
     uri = "value:int#123456"
-    stage = "prod"
+    stage: Stage = "prod"
     # Act & Assert
     with pytest.raises(
         ValueError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
@@ -70,7 +72,7 @@ def test_map_api_uri_to_url__unsupported_uri() -> None:
         ("value:none#", None),
     ],
 )
-def test_scalar_value_from_uri(uri, expected) -> None:
+def test_scalar_value_from_uri(uri: str, expected: Any) -> None:
     # Act
     result = scalar_value_from_uri(uri)
     # Assert
@@ -96,7 +98,7 @@ def test_scalar_value_from_uri__failed_parsing() -> None:
 @pytest.mark.asyncio
 async def test_fetch_model() -> None:
     # Arrange
-    stage = "staging"
+    stage: Stage = "staging"
     uri = "api:person#123456"
     mapped_url = "https://test-amy2.carpentries.org/api/v1/person/123456"
     client = AsyncMock()
@@ -117,7 +119,7 @@ async def test_fetch_model() -> None:
 @patch("src.api.fetch_model")
 async def test_fetch_model_field(mock_fetch_model: AsyncMock) -> None:
     # Arrange
-    stage = "staging"
+    stage: Stage = "staging"
     uri = "api:person#123456"
     property = "email"
     mock_fetch_model.return_value = {
@@ -141,7 +143,7 @@ async def test_fetch_model_field__property_string_conversion(
     mock_fetch_model: AsyncMock,
 ) -> None:
     # Arrange
-    stage = "staging"
+    stage: Stage = "staging"
     uri = "api:person#123456"
     property = "age"
     mock_fetch_model.return_value = {
@@ -163,7 +165,7 @@ async def test_fetch_model_field__property_string_conversion(
 @patch("src.api.fetch_model")
 async def test_fetch_model_field__invalid_property(mock_fetch_model: AsyncMock) -> None:
     # Arrange
-    stage = "staging"
+    stage: Stage = "staging"
     uri = "api:person#123456"
     property = "email"
     mock_fetch_model.return_value = {"id": 123456, "name": "John Doe"}
@@ -178,7 +180,7 @@ async def test_fetch_model_field__invalid_property(mock_fetch_model: AsyncMock) 
 async def test_context_entry__scalar() -> None:
     # Arrange
     uri = "value:str#test"
-    stage = "staging"
+    stage: Stage = "staging"
     client = AsyncMock()
 
     # Act
@@ -193,7 +195,7 @@ async def test_context_entry__scalar() -> None:
 async def test_context_entry__model(mock_fetch_model: AsyncMock) -> None:
     # Arrange
     uri = "api:person#123456"
-    stage = "staging"
+    stage: Stage = "staging"
     mock_fetch_model.return_value = {"id": 123456, "name": "John Doe"}
     client = AsyncMock()
 
@@ -208,7 +210,7 @@ async def test_context_entry__model(mock_fetch_model: AsyncMock) -> None:
 async def test_context_entry__unsupported_uri() -> None:
     # Arrange
     uri = "unsupported:person#123456"
-    stage = "staging"
+    stage: Stage = "staging"
     client = AsyncMock()
 
     # Act & Assert
@@ -227,7 +229,7 @@ async def test_context_entry__multiple_models(mock_fetch_model: AsyncMock) -> No
         "api:person#123456",
         "api:event#444",
     ]
-    stage = "staging"
+    stage: Stage = "staging"
     mock_fetch_model.side_effect = [
         {"id": 123456, "name": "John Doe"},
         {"id": 444, "slug": "test-event"},

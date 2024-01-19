@@ -1,6 +1,7 @@
 from typing import Optional, cast
 
 import boto3
+
 from src.types import SSMParameter
 
 

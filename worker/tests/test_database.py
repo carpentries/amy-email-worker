@@ -1,19 +1,19 @@
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch, call, ANY
+from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 from uuid import uuid4
 
 import pytest
 
 from src.database import (
     Db,
-    read_database_credentials_from_ssm,
     connection_string,
+    fail_email,
     fetch_email_by_id,
     fetch_scheduled_emails_to_run,
-    update_email_state,
     lock_email,
-    fail_email,
+    read_database_credentials_from_ssm,
     succeed_email,
+    update_email_state,
 )
 from src.types import (
     DatabaseCredentials,
