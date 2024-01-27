@@ -80,8 +80,8 @@ class RenderedScheduledEmail(ScheduledEmail):
 
 
 class WorkerOutputEmail(TypedDict):
-    email: dict[str, dict[str, Any] | ScheduledEmailStatus]
-    status: ScheduledEmailStatus
+    email: dict[str, Any]
+    status: str
 
 
 class WorkerOutput(TypedDict):
@@ -96,4 +96,4 @@ class SinglePropertyLinkModel(BaseModel):
 
 ToHeaderModel = RootModel[list[SinglePropertyLinkModel]]
 
-ContextModel = RootModel[dict[str, str | list[str] | str]]
+ContextModel = RootModel[dict[str, str | list[str]]]
