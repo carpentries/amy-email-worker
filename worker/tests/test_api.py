@@ -9,6 +9,7 @@ from src.api import (
     fetch_model_field,
     map_api_uri_to_url,
     scalar_value_from_uri,
+    UriError,
 )
 from src.types import Stage
 
@@ -42,7 +43,7 @@ def test_map_api_uri_to_url__unexpected_scheme() -> None:
     stage: Stage = "prod"
     # Act & Assert
     with pytest.raises(
-        ValueError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
+        UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
     ):
         map_api_uri_to_url(uri, stage)
 
@@ -53,7 +54,7 @@ def test_map_api_uri_to_url__unsupported_uri() -> None:
     stage: Stage = "prod"
     # Act & Assert
     with pytest.raises(
-        ValueError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
+        UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
     ):
         map_api_uri_to_url(uri, stage)
 
@@ -83,7 +84,7 @@ def test_scalar_value_from_uri__unsupported_scalar_type() -> None:
     # Arrange
     uri = "value:unsupported#test"
     # Act & Assert
-    with pytest.raises(ValueError, match="Unsupported scalar type 'unsupported'."):
+    with pytest.raises(UriError, match="Unsupported scalar type 'unsupported'."):
         scalar_value_from_uri(uri)
 
 
@@ -91,7 +92,7 @@ def test_scalar_value_from_uri__failed_parsing() -> None:
     # Arrange
     uri = "value:int#asd"
     # Act & Assert
-    with pytest.raises(ValueError, match="Failed to parse 'asd' from 'value:int#asd'."):
+    with pytest.raises(UriError, match="Failed to parse 'asd' from 'value:int#asd'."):
         scalar_value_from_uri(uri)
 
 
@@ -215,7 +216,7 @@ async def test_context_entry__unsupported_uri() -> None:
 
     # Act & Assert
     with pytest.raises(
-        ValueError,
+        UriError,
         match="Unsupported URI 'unsupported:person#123456' for context generation.",
     ):
         await context_entry(uri, client, stage)

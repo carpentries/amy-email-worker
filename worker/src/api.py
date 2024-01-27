@@ -10,6 +10,10 @@ from src.types import BasicTypes, Stage
 logger = logging.getLogger("amy-email-worker")
 
 
+class UriError(Exception):
+    pass
+
+
 def map_api_uri_to_url(api_uri: str, stage: Stage) -> str:
     logger.info(f"Mapping API URI {api_uri!r} onto URL.")
 
@@ -23,7 +27,7 @@ def map_api_uri_to_url(api_uri: str, stage: Stage) -> str:
         case ParseResult(
             scheme="value", netloc="", path=_, params="", query="", fragment=_
         ):
-            raise ValueError("Unexpected API URI 'value' scheme. Expected only 'api'.")
+            raise UriError("Unexpected API URI 'value' scheme. Expected only 'api'.")
 
         case ParseResult(
             scheme="api", netloc="", path=model, params="", query="", fragment=id_
@@ -31,7 +35,7 @@ def map_api_uri_to_url(api_uri: str, stage: Stage) -> str:
             return f"https://{host}/api/v1/{model}/{id_}"  # TODO: update to v2
 
         case _:
-            raise ValueError(f"Unsupported URI {api_uri!r}.")
+            raise UriError(f"Unsupported URI {api_uri!r}.")
 
 
 def scalar_value_from_uri(uri: str) -> BasicTypes:
@@ -52,12 +56,12 @@ def scalar_value_from_uri(uri: str) -> BasicTypes:
             try:
                 return cast(str | int | float | bool, mapping[path](value))
             except KeyError as exc:
-                raise ValueError(f"Unsupported scalar type {path!r}.") from exc
+                raise UriError(f"Unsupported scalar type {path!r}.") from exc
             except ValueError as exc:
-                raise ValueError(f"Failed to parse {value!r} from {uri!r}.") from exc
+                raise UriError(f"Failed to parse {value!r} from {uri!r}.") from exc
 
         case _:
-            raise ValueError(f"Unsupported URI {uri!r}.")
+            raise UriError(f"Unsupported URI {uri!r}.")
 
 
 async def fetch_model(
@@ -113,4 +117,4 @@ async def context_entry(
             return await fetch_model(uri, client, stage)
 
         case _:
-            raise ValueError(f"Unsupported URI {uri!r} for context generation.")
+            raise UriError(f"Unsupported URI {uri!r} for context generation.")
