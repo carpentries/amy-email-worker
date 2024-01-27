@@ -5,8 +5,9 @@ from typing import Any
 import httpx
 import psycopg.cursor_async
 from jinja2 import DebugUndefined, Environment
+from jinja2.exceptions import TemplateSyntaxError
 
-from src.api import context_entry, fetch_model_field
+from src.api import context_entry, fetch_model_field, UriError
 from src.database import fail_email, lock_email, succeed_email, update_email_state
 from src.email import render_email, send_email
 from src.types import (
@@ -28,8 +29,8 @@ async def return_fail_email(
     logger.info(details)
     failed_email = await fail_email(email, details, cursor)
     return {
-        "email": failed_email.model_dump(),
-        "status": failed_email.state,
+        "email": failed_email.model_dump(mode="json"),
+        "status": failed_email.state.value,
     }
 
 
@@ -48,7 +49,7 @@ async def handle_email(
     logger.info(f"Locked email {id}.")
 
     try:
-        context = ContextModel(**json.loads(locked_email.context_json))
+        context = ContextModel(json.loads(locked_email.context_json))
     except json.JSONDecodeError as exc:
         return await return_fail_email(
             locked_email,
@@ -66,21 +67,45 @@ async def handle_email(
         )
 
     # Fetch data from API for context and recipients
-    context_dict = {
-        key: await context_entry(link, client, stage)
-        for key, link in context.root.items()
-    }
-    recipient_addresses_list = [
-        await fetch_model_field(recipient.api_uri, recipient.property, client, stage)
-        for recipient in recipients.root
-    ]
+    try:
+        context_dict = {
+            key: await context_entry(link, client, stage)
+            for key, link in context.root.items()
+        }
+    except UriError as exc:
+        return await return_fail_email(
+            locked_email,
+            f"Issue when generating context: {exc}",
+            cursor,
+        )
+
+    try:
+        recipient_addresses_list = [
+            await fetch_model_field(
+                recipient.api_uri, recipient.property, client, stage
+            )
+            for recipient in recipients.root
+        ]
+    except UriError as exc:
+        return await return_fail_email(
+            locked_email,
+            f"Issue when generating email {id} recipients: {exc}",
+            cursor,
+        )
 
     # Render email subject, body and recipients using JSON data from the API.
     logger.info(f"Rendering email {id}.")
     engine = Environment(autoescape=True, undefined=DebugUndefined)
-    rendered_email = render_email(
-        engine, locked_email, context_dict, recipient_addresses_list
-    )
+    try:
+        rendered_email = render_email(
+            engine, locked_email, context_dict, recipient_addresses_list
+        )
+    except TemplateSyntaxError as exc:
+        return await return_fail_email(
+            locked_email,
+            f"Failed to render email {id}. Error: {exc}",
+            cursor,
+        )
 
     try:
         logger.info(f"Attempting to send email {id}.")
@@ -113,6 +138,6 @@ async def handle_email(
             details=f"Mailgun response: {response.content!r}",
         )
         return {
-            "email": succeeded_email.model_dump(),
-            "status": succeeded_email.state,
+            "email": succeeded_email.model_dump(mode="json"),
+            "status": succeeded_email.state.value,
         }
