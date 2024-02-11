@@ -11,6 +11,7 @@ from src.api import context_entry, fetch_model_field, UriError
 from src.database import fail_email, lock_email, succeed_email, update_email_state
 from src.email import render_email, send_email
 from src.types import (
+    AuthToken,
     ContextModel,
     MailgunCredentials,
     ScheduledEmail,
@@ -39,6 +40,7 @@ async def handle_email(
     overwrite_outgoing_emails: str,
     cursor: psycopg.cursor_async.AsyncCursor[Any],
     client: httpx.AsyncClient,
+    token: AuthToken,
 ) -> WorkerOutputEmail:
     id = email.id
     logger.info(f"Working on email {id}.")
@@ -67,7 +69,7 @@ async def handle_email(
     # Fetch data from API for context and recipients
     try:
         context_dict = {
-            key: await context_entry(link, client)
+            key: await context_entry(link, client, token)
             for key, link in context.root.items()
         }
     except UriError as exc:
@@ -80,7 +82,7 @@ async def handle_email(
     try:
         recipient_addresses_list = [
             await fetch_model_field(
-                recipient.api_uri, recipient.property, client
+                recipient.api_uri, recipient.property, client, token
             )
             for recipient in recipients.root
         ]

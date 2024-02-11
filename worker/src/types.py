@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Literal, Optional, TypedDict
 from uuid import UUID
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, ConfigDict, RootModel
 
 BasicTypes = str | int | float | bool | None
 Stage = Literal["prod", "staging"]
@@ -97,3 +97,13 @@ class SinglePropertyLinkModel(BaseModel):
 ToHeaderModel = RootModel[list[SinglePropertyLinkModel]]
 
 ContextModel = RootModel[dict[str, str | list[str]]]
+
+
+class AuthToken(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    expiry: datetime
+    token: str
+
+    def has_expired(self, current_time: datetime, delta: timedelta) -> bool:
+        return self.expiry < (current_time - delta)

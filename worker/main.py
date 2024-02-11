@@ -14,6 +14,7 @@ from src.database import (
 )
 from src.handler import handle_email
 from src.settings import STAGE, SETTINGS, read_mailgun_credentials
+from src.token import CachedToken
 from src.types import WorkerOutput
 
 logging.basicConfig()
@@ -50,6 +51,8 @@ async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
 
     result: WorkerOutput = {"emails": []}
 
+    token_cache = CachedToken()
+
     async with (
         await psycopg.AsyncConnection.connect(
             connection_string(database_credentials),
@@ -68,6 +71,7 @@ async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
                     overwrite_outgoing_emails,
                     cursor,
                     client,
+                    token=await token_cache.get_token(client),
                 )
                 for email in emails
             ]
