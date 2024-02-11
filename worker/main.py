@@ -13,7 +13,7 @@ from src.database import (
     read_database_credentials_from_ssm,
 )
 from src.handler import handle_email
-from src.settings import read_mailgun_credentials, read_settings_from_env
+from src.settings import STAGE, SETTINGS, read_mailgun_credentials
 from src.types import WorkerOutput
 
 logging.basicConfig()
@@ -36,16 +36,14 @@ logger.setLevel(logging.INFO)  # use logging.DEBUG to see boto3 logs
 async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
     logger.info(f"Start handler with arguments: {event=}, {context=}")
 
-    settings = read_settings_from_env()
-    stage = settings.STAGE
-    overwrite_outgoing_emails = settings.OVERWRITE_OUTGOING_EMAILS
-    logger.info(f"Stage: {stage}")
+    overwrite_outgoing_emails = SETTINGS.OVERWRITE_OUTGOING_EMAILS
+    logger.info(f"Stage: {STAGE}")
     logger.info(f"Outgoing emails override: {overwrite_outgoing_emails}")
 
-    database_credentials = read_database_credentials_from_ssm(stage)
+    database_credentials = read_database_credentials_from_ssm()
     logger.info("Obtained credentials for database.")
 
-    mailgun_credentials = read_mailgun_credentials(stage)
+    mailgun_credentials = read_mailgun_credentials()
     logger.info("Obtained credentials for Mailgun.")
 
     result: WorkerOutput = {"emails": []}
@@ -68,7 +66,6 @@ async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
                     overwrite_outgoing_emails,
                     cursor,
                     client,
-                    stage,
                 )
                 for email in emails
             ]

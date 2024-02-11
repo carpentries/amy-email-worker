@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from psycopg.cursor_async import AsyncCursor
 
+from src.settings import STAGE
 from src.ssm import get_parameter_value, read_ssm_parameter
 from src.types import (
     DatabaseCredentials,
@@ -89,13 +90,13 @@ class Db:
         )
 
 
-def read_database_credentials_from_ssm(stage: str) -> DatabaseCredentials:
+def read_database_credentials_from_ssm() -> DatabaseCredentials:
     # TODO: turn into async
-    database_host_parameter = read_ssm_parameter(f"/{stage}/amy/database_host")
-    database_port_parameter = read_ssm_parameter(f"/{stage}/amy/database_port")
-    database_name_parameter = read_ssm_parameter(f"/{stage}/amy/database_name")
-    database_user_parameter = read_ssm_parameter(f"/{stage}/amy/database_user")
-    database_password_parameter = read_ssm_parameter(f"/{stage}/amy/database_password")
+    database_host_parameter = read_ssm_parameter(f"/{STAGE}/amy/database_host")
+    database_port_parameter = read_ssm_parameter(f"/{STAGE}/amy/database_port")
+    database_name_parameter = read_ssm_parameter(f"/{STAGE}/amy/database_name")
+    database_user_parameter = read_ssm_parameter(f"/{STAGE}/amy/database_user")
+    database_password_parameter = read_ssm_parameter(f"/{STAGE}/amy/database_password")
 
     database_host = (
         get_parameter_value(database_host_parameter)

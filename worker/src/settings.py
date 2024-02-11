@@ -14,13 +14,17 @@ def read_settings_from_env() -> Settings:
     )
 
 
-def read_mailgun_credentials(stage: str) -> MailgunCredentials:
+SETTINGS = read_settings_from_env()
+STAGE = SETTINGS.STAGE
+
+
+def read_mailgun_credentials() -> MailgunCredentials:
     # TODO: turn into async
-    api_key_parameter = read_ssm_parameter(f"/{stage}/email-worker/mailgun_key")
+    api_key_parameter = read_ssm_parameter(f"/{STAGE}/email-worker/mailgun_key")
     api_key = get_parameter_value(api_key_parameter) if api_key_parameter else "fakeKey"
 
     sender_domain_parameter = read_ssm_parameter(
-        f"/{stage}/email-worker/mailgun_sender_domain"
+        f"/{STAGE}/email-worker/mailgun_sender_domain"
     )
     sender_domain = (
         get_parameter_value(sender_domain_parameter) if sender_domain_parameter else ""

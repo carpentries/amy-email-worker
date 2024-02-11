@@ -14,7 +14,6 @@ from src.types import (
     ContextModel,
     MailgunCredentials,
     ScheduledEmail,
-    Stage,
     ToHeaderModel,
     WorkerOutputEmail,
 )
@@ -40,7 +39,6 @@ async def handle_email(
     overwrite_outgoing_emails: str,
     cursor: psycopg.cursor_async.AsyncCursor[Any],
     client: httpx.AsyncClient,
-    stage: Stage,
 ) -> WorkerOutputEmail:
     id = email.id
     logger.info(f"Working on email {id}.")
@@ -69,7 +67,7 @@ async def handle_email(
     # Fetch data from API for context and recipients
     try:
         context_dict = {
-            key: await context_entry(link, client, stage)
+            key: await context_entry(link, client)
             for key, link in context.root.items()
         }
     except UriError as exc:
@@ -82,7 +80,7 @@ async def handle_email(
     try:
         recipient_addresses_list = [
             await fetch_model_field(
-                recipient.api_uri, recipient.property, client, stage
+                recipient.api_uri, recipient.property, client
             )
             for recipient in recipients.root
         ]
