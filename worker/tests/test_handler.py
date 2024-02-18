@@ -1,12 +1,17 @@
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch, ANY
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from uuid import uuid4
-from httpx import HTTPStatusError
 
 import pytest
+from httpx import HTTPStatusError
 
-from src.handler import return_fail_email, handle_email
-from src.types import MailgunCredentials, ScheduledEmail, ScheduledEmailStatus, Stage
+from src.handler import handle_email, return_fail_email
+from src.types import (
+    AuthToken,
+    MailgunCredentials,
+    ScheduledEmail,
+    ScheduledEmailStatus,
+)
 
 
 @pytest.fixture
@@ -65,6 +70,7 @@ async def test_handle_email__happy_path(
     mock_succeed_email: AsyncMock,
     mock_update_email_state: AsyncMock,
     scheduled_email: ScheduledEmail,
+    token: AuthToken,
 ) -> None:
     # Arrange
     mailgun_credentials = MailgunCredentials(
@@ -74,7 +80,6 @@ async def test_handle_email__happy_path(
     overwrite_outgoing_emails = "test-ml@example.com"
     cursor = AsyncMock()
     client = AsyncMock()
-    stage: Stage = "staging"
     mock_lock_email.return_value = scheduled_email
     mock_fetch_model_field.return_value = "person@example.org"
     mock_send_email.return_value.content = {
@@ -92,7 +97,7 @@ async def test_handle_email__happy_path(
         overwrite_outgoing_emails,
         cursor,
         client,
-        stage,
+        token,
     )
 
     # Assert
@@ -102,7 +107,7 @@ async def test_handle_email__happy_path(
     }
     mock_lock_email.assert_awaited_once_with(scheduled_email, cursor)
     mock_fetch_model_field.assert_awaited_once_with(
-        "api:person#1", "email", client, stage
+        "api:person#1", "email", client, token
     )
     mock_send_email.assert_awaited_once_with(
         client,
@@ -124,6 +129,7 @@ async def test_handle_email__invalid_context_json(
     mock_lock_email: AsyncMock,
     mock_update_email_state: AsyncMock,
     scheduled_email: ScheduledEmail,
+    token: AuthToken,
 ) -> None:
     # Arrange
     scheduled_email.context_json = "{"  # invalid JSON
@@ -137,7 +143,6 @@ async def test_handle_email__invalid_context_json(
     overwrite_outgoing_emails = "test-ml@example.com"
     cursor = AsyncMock()
     client = AsyncMock()
-    stage: Stage = "staging"
     mock_lock_email.return_value = scheduled_email
     mock_update_email_state.return_value = failed_email
 
@@ -148,7 +153,7 @@ async def test_handle_email__invalid_context_json(
         overwrite_outgoing_emails,
         cursor,
         client,
-        stage,
+        token,
     )
 
     # Assert
@@ -169,6 +174,7 @@ async def test_handle_email__invalid_to_header_context_json(
     mock_lock_email: AsyncMock,
     mock_update_email_state: AsyncMock,
     scheduled_email: ScheduledEmail,
+    token: AuthToken,
 ) -> None:
     # Arrange
     scheduled_email.to_header_context_json = "{"  # invalid JSON
@@ -182,7 +188,6 @@ async def test_handle_email__invalid_to_header_context_json(
     overwrite_outgoing_emails = "test-ml@example.com"
     cursor = AsyncMock()
     client = AsyncMock()
-    stage: Stage = "staging"
     mock_lock_email.return_value = scheduled_email
     mock_update_email_state.return_value = failed_email
 
@@ -193,7 +198,7 @@ async def test_handle_email__invalid_to_header_context_json(
         overwrite_outgoing_emails,
         cursor,
         client,
-        stage,
+        token,
     )
 
     # Assert
@@ -214,6 +219,7 @@ async def test_handle_email__unsupported_context_uri(
     mock_lock_email: AsyncMock,
     mock_update_email_state: AsyncMock,
     scheduled_email: ScheduledEmail,
+    token: AuthToken,
 ) -> None:
     # Arrange
     scheduled_email.context_json = '{"name": "unsupported#John Doe"}'
@@ -227,7 +233,6 @@ async def test_handle_email__unsupported_context_uri(
     overwrite_outgoing_emails = "test-ml@example.com"
     cursor = AsyncMock()
     client = AsyncMock()
-    stage: Stage = "staging"
     mock_lock_email.return_value = scheduled_email
     mock_update_email_state.return_value = failed_email
 
@@ -238,7 +243,7 @@ async def test_handle_email__unsupported_context_uri(
         overwrite_outgoing_emails,
         cursor,
         client,
-        stage,
+        token,
     )
 
     # Assert
@@ -265,6 +270,7 @@ async def test_handle_email__invalid_recipients(
     mock_lock_email: AsyncMock,
     mock_update_email_state: AsyncMock,
     scheduled_email: ScheduledEmail,
+    token: AuthToken,
 ) -> None:
     # Arrange
     scheduled_email.to_header_context_json = (
@@ -280,7 +286,6 @@ async def test_handle_email__invalid_recipients(
     overwrite_outgoing_emails = "test-ml@example.com"
     cursor = AsyncMock()
     client = AsyncMock()
-    stage: Stage = "staging"
     mock_lock_email.return_value = scheduled_email
     mock_update_email_state.return_value = failed_email
 
@@ -291,7 +296,7 @@ async def test_handle_email__invalid_recipients(
         overwrite_outgoing_emails,
         cursor,
         client,
-        stage,
+        token,
     )
 
     # Assert
@@ -320,6 +325,7 @@ async def test_handle_email__invalid_jinja2_template(
     mock_fetch_model_field: AsyncMock,
     mock_update_email_state: AsyncMock,
     scheduled_email: ScheduledEmail,
+    token: AuthToken,
 ) -> None:
     # Arrange
     scheduled_email.subject = "{{ invalid_syntax }"
@@ -333,7 +339,6 @@ async def test_handle_email__invalid_jinja2_template(
     overwrite_outgoing_emails = "test-ml@example.com"
     cursor = AsyncMock()
     client = AsyncMock()
-    stage: Stage = "staging"
     mock_lock_email.return_value = scheduled_email
     mock_fetch_model_field.return_value = "person@example.org"
     mock_update_email_state.return_value = failed_email
@@ -345,7 +350,7 @@ async def test_handle_email__invalid_jinja2_template(
         overwrite_outgoing_emails,
         cursor,
         client,
-        stage,
+        token,
     )
 
     # Assert
@@ -375,6 +380,7 @@ async def test_handle_email__mailgun_error(
     mock_send_email: AsyncMock,
     mock_update_email_state: AsyncMock,
     scheduled_email: ScheduledEmail,
+    token: AuthToken,
 ) -> None:
     # Arrange
     failed_email = scheduled_email.model_copy(
@@ -387,7 +393,6 @@ async def test_handle_email__mailgun_error(
     overwrite_outgoing_emails = "test-ml@example.com"
     cursor = AsyncMock()
     client = AsyncMock()
-    stage: Stage = "staging"
     mock_lock_email.return_value = scheduled_email
     mock_fetch_model_field.return_value = "person@example.org"
     mock_send_email.return_value.raise_for_status = MagicMock(
@@ -402,7 +407,7 @@ async def test_handle_email__mailgun_error(
         overwrite_outgoing_emails,
         cursor,
         client,
-        stage,
+        token,
     )
 
     # Assert
@@ -415,7 +420,5 @@ async def test_handle_email__mailgun_error(
         scheduled_email,
         ScheduledEmailStatus.FAILED,
         cursor,
-        details=(
-            f"Failed to send email {scheduled_email.id}. Error: test"
-        ),
+        details=(f"Failed to send email {scheduled_email.id}. Error: test"),
     )

@@ -42,7 +42,7 @@ def test_read_database_credentials_from_ssm(mock_read_ssm_parameter: MagicMock) 
     )
 
     # Act
-    credentials = read_database_credentials_from_ssm("staging")
+    credentials = read_database_credentials_from_ssm()
 
     # Assert
     assert credentials == expected_credentials

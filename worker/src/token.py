@@ -1,23 +1,9 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
-from src.settings import STAGE
-from src.types import AuthToken, Stage
-
-
-def api_url() -> str:
-    stage_to_host: dict[Stage, str] = {
-        "prod": "amy.carpentries.org",
-        "staging": "test-amy2.carpentries.org",
-    }
-    host = stage_to_host[STAGE]
-    return f"https://{host}/api"
-
-
-def api_credentials() -> tuple[str, str]:
-    # TODO: implement
-    return "user", "pswd"
+from src.settings import SETTINGS, read_token_credentials_from_ssm
+from src.types import AuthToken
 
 
 class CachedToken:
@@ -30,10 +16,13 @@ class CachedToken:
 
     @staticmethod
     async def fetch_token(client: httpx.AsyncClient) -> AuthToken:
-        url = f"{api_url()}/auth/login/"
-        user, pswd = api_credentials()
+        credentials = read_token_credentials_from_ssm()
+        url = f"{SETTINGS.API_BASE_URL}/auth/login/"
 
-        response = await client.post(url, auth=(user, pswd))
+        response = await client.post(
+            url,
+            auth=(credentials.USER, credentials.PASSWORD),
+        )
         response.raise_for_status()
 
         return AuthToken(**response.json())

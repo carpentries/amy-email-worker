@@ -4,35 +4,33 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.api import (
+    UriError,
     context_entry,
     fetch_model,
     fetch_model_field,
     map_api_uri_to_url,
     scalar_value_from_uri,
-    UriError,
 )
-from src.types import Stage
+from src.types import AuthToken
 
 
 # Arrange
 @pytest.mark.parametrize(
-    "uri,stage,expected",
+    "uri,expected",
     [
         (
             "api:person#123456",
-            "staging",
-            "https://test-amy2.carpentries.org/api/v1/person/123456",
+            "http://localhost:8000/api/v2/person/123456",
         ),
         (
             "api:event#444",
-            "prod",
-            "https://amy.carpentries.org/api/v1/event/444",
+            "http://localhost:8000/api/v2/event/444",
         ),
     ],
 )
-def test_map_api_uri_to_url(uri: str, stage: Stage, expected: str) -> None:
+def test_map_api_uri_to_url(uri: str, expected: str) -> None:
     # Act
-    result = map_api_uri_to_url(uri, stage)
+    result = map_api_uri_to_url(uri)
     # Assert
     assert result == expected
 
@@ -40,23 +38,22 @@ def test_map_api_uri_to_url(uri: str, stage: Stage, expected: str) -> None:
 def test_map_api_uri_to_url__unexpected_scheme() -> None:
     # Arrange
     uri = "value:int#123456"
-    stage: Stage = "prod"
+
     # Act & Assert
     with pytest.raises(
         UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
     ):
-        map_api_uri_to_url(uri, stage)
+        map_api_uri_to_url(uri)
 
 
 def test_map_api_uri_to_url__unsupported_uri() -> None:
     # Arrange
     uri = "value:int#123456"
-    stage: Stage = "prod"
     # Act & Assert
     with pytest.raises(
         UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
     ):
-        map_api_uri_to_url(uri, stage)
+        map_api_uri_to_url(uri)
 
 
 # Arrange
@@ -97,30 +94,29 @@ def test_scalar_value_from_uri__failed_parsing() -> None:
 
 
 @pytest.mark.asyncio
-async def test_fetch_model() -> None:
+async def test_fetch_model(token: AuthToken) -> None:
     # Arrange
-    stage: Stage = "staging"
     uri = "api:person#123456"
-    mapped_url = "https://test-amy2.carpentries.org/api/v1/person/123456"
+    mapped_url = "http://localhost:8000/api/v2/person/123456"
+    headers = {"Authorization": f"Token {token.token}"}
     client = AsyncMock()
     mock_get = MagicMock()
     client.get.return_value = mock_get
     mock_get.json.return_value = {"id": 123456, "name": "John Doe"}
 
     # Act
-    result = await fetch_model(uri, client, stage)
+    result = await fetch_model(uri, client, token)
 
     # Assert
-    client.get.assert_awaited_once_with(mapped_url)
+    client.get.assert_awaited_once_with(mapped_url, headers=headers)
     mock_get.raise_for_status.assert_called_once()
     assert result == {"id": 123456, "name": "John Doe"}
 
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_fetch_model_field(mock_fetch_model: AsyncMock) -> None:
+async def test_fetch_model_field(mock_fetch_model: AsyncMock, token: AuthToken) -> None:
     # Arrange
-    stage: Stage = "staging"
     uri = "api:person#123456"
     property = "email"
     mock_fetch_model.return_value = {
@@ -131,20 +127,19 @@ async def test_fetch_model_field(mock_fetch_model: AsyncMock) -> None:
     client = AsyncMock()
 
     # Act
-    result = await fetch_model_field(uri, property, client, stage)
+    result = await fetch_model_field(uri, property, client, token)
 
     # Assert
-    mock_fetch_model.assert_awaited_once_with(uri, client, stage)
+    mock_fetch_model.assert_awaited_once_with(uri, client, token)
     assert result == "jdoe@example.com"
 
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
 async def test_fetch_model_field__property_string_conversion(
-    mock_fetch_model: AsyncMock,
+    mock_fetch_model: AsyncMock, token: AuthToken
 ) -> None:
     # Arrange
-    stage: Stage = "staging"
     uri = "api:person#123456"
     property = "age"
     mock_fetch_model.return_value = {
@@ -155,18 +150,19 @@ async def test_fetch_model_field__property_string_conversion(
     client = AsyncMock()
 
     # Act
-    result = await fetch_model_field(uri, property, client, stage)
+    result = await fetch_model_field(uri, property, client, token)
 
     # Assert
-    mock_fetch_model.assert_awaited_once_with(uri, client, stage)
+    mock_fetch_model.assert_awaited_once_with(uri, client, token)
     assert result == "35"
 
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_fetch_model_field__invalid_property(mock_fetch_model: AsyncMock) -> None:
+async def test_fetch_model_field__invalid_property(
+    mock_fetch_model: AsyncMock, token: AuthToken
+) -> None:
     # Arrange
-    stage: Stage = "staging"
     uri = "api:person#123456"
     property = "email"
     mock_fetch_model.return_value = {"id": 123456, "name": "John Doe"}
@@ -174,18 +170,17 @@ async def test_fetch_model_field__invalid_property(mock_fetch_model: AsyncMock) 
 
     # Act & Assert
     with pytest.raises(KeyError, match="email"):
-        await fetch_model_field(uri, property, client, stage)
+        await fetch_model_field(uri, property, client, token)
 
 
 @pytest.mark.asyncio
-async def test_context_entry__scalar() -> None:
+async def test_context_entry__scalar(token: AuthToken) -> None:
     # Arrange
     uri = "value:str#test"
-    stage: Stage = "staging"
     client = AsyncMock()
 
     # Act
-    result = await context_entry(uri, client, stage)
+    result = await context_entry(uri, client, token)
 
     # Assert
     assert result == "test"
@@ -193,25 +188,25 @@ async def test_context_entry__scalar() -> None:
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_context_entry__model(mock_fetch_model: AsyncMock) -> None:
+async def test_context_entry__model(
+    mock_fetch_model: AsyncMock, token: AuthToken
+) -> None:
     # Arrange
     uri = "api:person#123456"
-    stage: Stage = "staging"
     mock_fetch_model.return_value = {"id": 123456, "name": "John Doe"}
     client = AsyncMock()
 
     # Act
-    result = await context_entry(uri, client, stage)
+    result = await context_entry(uri, client, token)
 
     # Assert
     assert result == {"id": 123456, "name": "John Doe"}
 
 
 @pytest.mark.asyncio
-async def test_context_entry__unsupported_uri() -> None:
+async def test_context_entry__unsupported_uri(token: AuthToken) -> None:
     # Arrange
     uri = "unsupported:person#123456"
-    stage: Stage = "staging"
     client = AsyncMock()
 
     # Act & Assert
@@ -219,18 +214,19 @@ async def test_context_entry__unsupported_uri() -> None:
         UriError,
         match="Unsupported URI 'unsupported:person#123456' for context generation.",
     ):
-        await context_entry(uri, client, stage)
+        await context_entry(uri, client, token)
 
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_context_entry__multiple_models(mock_fetch_model: AsyncMock) -> None:
+async def test_context_entry__multiple_models(
+    mock_fetch_model: AsyncMock, token: AuthToken
+) -> None:
     # Arrange
     uris = [
         "api:person#123456",
         "api:event#444",
     ]
-    stage: Stage = "staging"
     mock_fetch_model.side_effect = [
         {"id": 123456, "name": "John Doe"},
         {"id": 444, "slug": "test-event"},
@@ -238,7 +234,7 @@ async def test_context_entry__multiple_models(mock_fetch_model: AsyncMock) -> No
     client = AsyncMock()
 
     # Act
-    result = await context_entry(uris, client, stage)
+    result = await context_entry(uris, client, token)
 
     # Assert
     assert result == [
