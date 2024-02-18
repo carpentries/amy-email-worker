@@ -48,6 +48,12 @@ class DatabaseCredentials:
     NAME: str
 
 
+@dataclass(frozen=True)
+class Credentials:
+    USER: str
+    PASSWORD: str
+
+
 class ScheduledEmailStatus(Enum):
     SCHEDULED = "scheduled"
     LOCKED = "locked"

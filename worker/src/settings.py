@@ -2,7 +2,7 @@ import os
 from typing import cast
 
 from src.ssm import get_parameter_value, read_ssm_parameter
-from src.types import MailgunCredentials, Settings, Stage
+from src.types import Credentials, MailgunCredentials, Settings, Stage
 
 
 def read_settings_from_env() -> Settings:
@@ -34,4 +34,28 @@ def read_mailgun_credentials() -> MailgunCredentials:
     return MailgunCredentials(
         MAILGUN_SENDER_DOMAIN=sender_domain,
         MAILGUN_API_KEY=api_key,
+    )
+
+
+def read_token_credentials_from_ssm() -> Credentials:
+    # TODO: turn into async
+    token_user_parameter = read_ssm_parameter(f"/{STAGE}/email-worker/token_username")
+    token_password_parameter = read_ssm_parameter(
+        f"/{STAGE}/email-worker/token_password"
+    )
+
+    token_user = (
+        get_parameter_value(token_user_parameter)
+        if token_user_parameter
+        else "email_worker_account"
+    )
+    token_password = (
+        get_parameter_value(token_password_parameter)
+        if token_password_parameter
+        else "fakePassword"
+    )
+
+    return Credentials(
+        USER=token_user,
+        PASSWORD=token_password,
     )
