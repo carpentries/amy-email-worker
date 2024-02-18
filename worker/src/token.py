@@ -10,8 +10,10 @@ class CachedToken:
     _token: AuthToken | None
     _delta: timedelta
 
-    def __init__(self, delta: timedelta = timedelta(0)) -> None:
-        self._token = None
+    def __init__(
+        self, delta: timedelta = timedelta(0), token: AuthToken | None = None
+    ) -> None:
+        self._token = token.model_copy() if token is not None else None
         self._delta = delta
 
     @staticmethod

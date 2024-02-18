@@ -113,4 +113,11 @@ class AuthToken(BaseModel):
     token: str
 
     def has_expired(self, current_time: datetime, delta: timedelta) -> bool:
-        return self.expiry < (current_time - delta)
+        """
+        Check if the token has expired.
+
+        If `delta` is provided, the token is considered expired if it expired
+        `delta` time ago from `current_time`.
+        This is useful for checking if a token is about to expire soon.
+        """
+        return self.expiry < (current_time + delta)
