@@ -30,6 +30,7 @@ class SSMParameter(TypedDict, total=False):
 class Settings:
     STAGE: Stage
     OVERWRITE_OUTGOING_EMAILS: str
+    API_BASE_URL: str
 
 
 @dataclass(frozen=True)

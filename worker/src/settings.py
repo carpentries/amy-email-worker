@@ -11,6 +11,8 @@ def read_settings_from_env() -> Settings:
         STAGE=cast(Stage, stage)
         if (stage := os.getenv("STAGE")) in ["staging", "prod"]
         else "staging",
+        # TODO: add in cdk
+        API_BASE_URL=os.getenv("API_BASE_URL") or "http://localhost:8000/api",
     )
 
 

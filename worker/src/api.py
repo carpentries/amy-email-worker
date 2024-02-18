@@ -5,7 +5,7 @@ from urllib.parse import ParseResult, urlparse
 
 import httpx
 
-from src.token import api_url
+from src.settings import SETTINGS
 from src.types import AuthToken, BasicTypes
 
 logger = logging.getLogger("amy-email-worker")
@@ -18,8 +18,6 @@ class UriError(Exception):
 def map_api_uri_to_url(api_uri: str) -> str:
     logger.info(f"Mapping API URI {api_uri!r} onto URL.")
 
-    url = api_url()
-
     match urlparse(api_uri):
         case ParseResult(
             scheme="value", netloc="", path=_, params="", query="", fragment=_
@@ -29,7 +27,7 @@ def map_api_uri_to_url(api_uri: str) -> str:
         case ParseResult(
             scheme="api", netloc="", path=model, params="", query="", fragment=id_
         ):
-            return f"{url}/v2/{model}/{id_}"
+            return f"{SETTINGS.API_BASE_URL}/v2/{model}/{id_}"
 
         case _:
             raise UriError(f"Unsupported URI {api_uri!r}.")
