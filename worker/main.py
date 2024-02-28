@@ -30,9 +30,9 @@ logger.setLevel(logging.INFO)  # use logging.DEBUG to see boto3 logs
 # 5. write unit tests! ✅
 # 6. create new simplified API in AMY ✅
 # 7. use authentication in the new API ✅
-# 8. use authentication in the worker
-# 9. limit token generation only for accounts with special permission
-# 10. update CDK with envvars / secrets
+# 8. use authentication in the worker ✅
+# 9. limit access only for accounts with special permission ✅
+# 10. update CDK with envvars ✅ / secrets ⏳
 # 11. create schemas for the endpoints
 # 12. add endpoints for managing emails
 # 13. rewrite email logic from handler below to use the new email endpoints
