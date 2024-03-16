@@ -3,13 +3,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.token import CachedToken
+from src.token import TokenCache
 from src.types import AuthToken, Credentials
 
 
 def test_cached_token__fresh_initialization() -> None:
     # Arrange
-    cached_token = CachedToken()
+    mock_client = AsyncMock()
+    cached_token = TokenCache(mock_client)
 
     # Assert
     assert cached_token._token is None
@@ -24,8 +25,8 @@ async def test_cached_token__fetch_token(
     mock_read_token_credentials: MagicMock,
 ) -> None:
     # Arrange
-    cached_token = CachedToken()
     client = AsyncMock()
+    cached_token = TokenCache(client)
     client.post.return_value = MagicMock()
     client.post.return_value.json.return_value = {
         "expiry": "2022-01-01T00:00:00Z",
@@ -33,7 +34,7 @@ async def test_cached_token__fetch_token(
     }
 
     # Act
-    token = await cached_token.fetch_token(client)
+    token = await cached_token.fetch_token()
 
     # Assert
     client.post.assert_awaited_once_with(
@@ -49,7 +50,7 @@ async def test_cached_token__fetch_token(
 async def test_cached_token__get_token__initial_fetch_token() -> None:
     # Arrange
     client = AsyncMock()
-    cached_token = CachedToken()
+    cached_token = TokenCache(client)
     cached_token.fetch_token = AsyncMock(  # type: ignore[method-assign]
         return_value=AuthToken(
             expiry=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
@@ -58,7 +59,7 @@ async def test_cached_token__get_token__initial_fetch_token() -> None:
     )
 
     # Act
-    token = await cached_token.get_token(client)
+    token = await cached_token.get_token()
 
     # Assert
     assert token == AuthToken(
@@ -75,15 +76,15 @@ async def test_cached_token__get_token__expired() -> None:
         expiry=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         token="testToken",
     )
-    cached_token = CachedToken(token=token)
+    cached_token = TokenCache(client, token=token)
     cached_token.fetch_token = AsyncMock()  # type: ignore[method-assign]
 
     # Act
-    await cached_token.get_token(client)
+    await cached_token.get_token()
 
     # Assert
     assert token.has_expired(datetime.now(tz=timezone.utc), delta=timedelta(0))
-    cached_token.fetch_token.assert_awaited_once_with(client)
+    cached_token.fetch_token.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -94,11 +95,11 @@ async def test_cached_token__get_token__cached() -> None:
         expiry=datetime.now(tz=timezone.utc) + timedelta(days=1),  # future
         token="testToken",
     )
-    cached_token = CachedToken(token=token)
+    cached_token = TokenCache(client, token=token)
     cached_token.fetch_token = AsyncMock()  # type: ignore[method-assign]
 
     # Act
-    await cached_token.get_token(client)
+    await cached_token.get_token()
 
     # Assert
     assert not token.has_expired(datetime.now(tz=timezone.utc), delta=timedelta(0))
