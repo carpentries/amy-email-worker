@@ -40,15 +40,6 @@ class MailgunCredentials:
 
 
 @dataclass(frozen=True)
-class DatabaseCredentials:
-    HOST: str
-    PORT: str
-    USER: str
-    PASSWORD: str
-    NAME: str
-
-
-@dataclass(frozen=True)
 class Credentials:
     USER: str
     PASSWORD: str
