@@ -1,17 +1,15 @@
 import json
 import logging
-from typing import Any
+from uuid import UUID
 
 import httpx
-import psycopg.cursor_async
 from jinja2 import DebugUndefined, Environment
 from jinja2.exceptions import TemplateSyntaxError
 
-from src.api import context_entry, fetch_model_field, UriError
-from src.database import fail_email, lock_email, succeed_email, update_email_state
+from src.api import ScheduledEmailController, UriError, context_entry, fetch_model_field
 from src.email import render_email, send_email
+from src.token import TokenCache
 from src.types import (
-    AuthToken,
     ContextModel,
     MailgunCredentials,
     ScheduledEmail,
@@ -23,11 +21,11 @@ logger = logging.getLogger("amy-email-worker")
 
 
 async def return_fail_email(
-    email: ScheduledEmail, details: str, cursor: psycopg.cursor_async.AsyncCursor[Any]
+    id_: UUID, details: str, controller: ScheduledEmailController
 ) -> WorkerOutputEmail:
     """Auxilary function to log failed info and return failed email struct."""
     logger.info(details)
-    failed_email = await fail_email(email, details, cursor)
+    failed_email = await controller.fail_by_id(id_, details=details)
     return {
         "email": failed_email.model_dump(mode="json"),
         "status": failed_email.state.value,
@@ -38,33 +36,35 @@ async def handle_email(
     email: ScheduledEmail,
     mailgun_credentials: MailgunCredentials,
     overwrite_outgoing_emails: str,
-    cursor: psycopg.cursor_async.AsyncCursor[Any],
+    controller: ScheduledEmailController,
     client: httpx.AsyncClient,
-    token: AuthToken,
+    token_cache: TokenCache,
 ) -> WorkerOutputEmail:
     id = email.id
     logger.info(f"Working on email {id}.")
 
-    locked_email = await lock_email(email, cursor)
+    locked_email = await controller.lock_by_id(id)
     logger.info(f"Locked email {id}.")
 
     try:
         context = ContextModel(json.loads(locked_email.context_json))
     except json.JSONDecodeError as exc:
         return await return_fail_email(
-            locked_email,
+            id,
             f"Failed to read JSON from email context {id}. Error: {exc}",
-            cursor,
+            controller,
         )
 
     try:
         recipients = ToHeaderModel(root=json.loads(locked_email.to_header_context_json))
     except json.JSONDecodeError as exc:
         return await return_fail_email(
-            locked_email,
+            id,
             f"Failed to read JSON from email recipients {id}. Error: {exc}",
-            cursor,
+            controller,
         )
+
+    token = await token_cache.get_token()
 
     # Fetch data from API for context and recipients
     try:
@@ -74,9 +74,9 @@ async def handle_email(
         }
     except UriError as exc:
         return await return_fail_email(
-            locked_email,
+            id,
             f"Issue when generating context: {exc}",
-            cursor,
+            controller,
         )
 
     try:
@@ -88,9 +88,9 @@ async def handle_email(
         ]
     except UriError as exc:
         return await return_fail_email(
-            locked_email,
+            id,
             f"Issue when generating email {id} recipients: {exc}",
-            cursor,
+            controller,
         )
 
     # Render email subject, body and recipients using JSON data from the API.
@@ -102,9 +102,9 @@ async def handle_email(
         )
     except TemplateSyntaxError as exc:
         return await return_fail_email(
-            locked_email,
+            id,
             f"Failed to render email {id}. Error: {exc}",
-            cursor,
+            controller,
         )
 
     try:
@@ -122,20 +122,12 @@ async def handle_email(
 
     except Exception as exc:
         return await return_fail_email(
-            locked_email,
-            f"Failed to send email {id}. Error: {exc}",
-            cursor,
+            id, f"Failed to send email {id}. Error: {exc}", controller
         )
 
     else:
-        succeeded_email = await succeed_email(
-            locked_email, "Email sent successfully.", cursor
-        )
-        await update_email_state(
-            succeeded_email,
-            succeeded_email.state,
-            cursor,
-            details=f"Mailgun response: {response.content!r}",
+        succeeded_email = await controller.succeed_by_id(
+            id, f"Email sent successfully. Mailgun response: {response.content!r}"
         )
         return {
             "email": succeeded_email.model_dump(mode="json"),
