@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, call
 from uuid import uuid4
@@ -32,14 +32,6 @@ def scheduled_email_fixture() -> dict[str, Any]:
     }
 
 
-@pytest.fixture()
-def valid_auth_token() -> AuthToken:
-    return AuthToken(
-        expiry=datetime.now(tz=timezone.utc) + timedelta(days=1),
-        token="testToken",
-    )
-
-
 def test_scheduled_email_controller__auth_headers() -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -58,7 +50,7 @@ def test_scheduled_email_controller__auth_headers() -> None:
 @pytest.mark.asyncio
 async def test_scheduled_email_controller__get_by_id(
     scheduled_email_fixture: dict[str, Any],
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -67,7 +59,7 @@ async def test_scheduled_email_controller__get_by_id(
     client.get.return_value = mock_get
     mock_get.json.return_value = scheduled_email_fixture
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
     id_ = uuid4()
 
@@ -80,7 +72,7 @@ async def test_scheduled_email_controller__get_by_id(
 
 @pytest.mark.asyncio
 async def test_scheduled_email_controller__get_paginated(
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -100,7 +92,7 @@ async def test_scheduled_email_controller__get_paginated(
     }
     mock_get3.status_code = 404
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
     url = f"{api_base_url}/v2/fakepage?page={{}}"
 
@@ -119,7 +111,7 @@ async def test_scheduled_email_controller__get_paginated(
 @pytest.mark.parametrize("max_pages", [0, 6])
 async def test_scheduled_email_controller__get_paginated__safety_break_at_max_pages(
     max_pages: int,
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -132,7 +124,7 @@ async def test_scheduled_email_controller__get_paginated__safety_break_at_max_pa
         "results": [{"id": "9116a1af-f361-4633-8990-5e16e43683e3"}]
     }
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
     url = f"{api_base_url}/v2/fakepage?page={{}}"
 
@@ -147,7 +139,7 @@ async def test_scheduled_email_controller__get_paginated__safety_break_at_max_pa
 @pytest.mark.asyncio
 async def test_scheduled_email_controller__get_all(
     scheduled_email_fixture: dict[str, Any],
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -162,9 +154,9 @@ async def test_scheduled_email_controller__get_all(
     }
     mock_get2.status_code = 404
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
-    headers = controller.auth_headers(valid_auth_token.token)
+    headers = controller.auth_headers(token.token)
 
     # Act
     results = await controller.get_all()
@@ -185,7 +177,7 @@ async def test_scheduled_email_controller__get_all(
 @pytest.mark.asyncio
 async def test_scheduled_email_controller__get_scheduled_to_run(
     scheduled_email_fixture: dict[str, Any],
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -200,9 +192,9 @@ async def test_scheduled_email_controller__get_scheduled_to_run(
     }
     mock_get2.status_code = 404
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
-    headers = controller.auth_headers(valid_auth_token.token)
+    headers = controller.auth_headers(token.token)
 
     # Act
     results = await controller.get_scheduled_to_run()
@@ -229,7 +221,7 @@ async def test_scheduled_email_controller__get_scheduled_to_run(
 @pytest.mark.asyncio
 async def test_scheduled_email_controller__lock_by_id(
     scheduled_email_fixture: dict[str, Any],
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -238,9 +230,9 @@ async def test_scheduled_email_controller__lock_by_id(
     client.post.return_value = mock_post
     mock_post.json.return_value = scheduled_email_fixture
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
-    headers = controller.auth_headers(valid_auth_token.token)
+    headers = controller.auth_headers(token.token)
     id_ = uuid4()
 
     # Act
@@ -256,7 +248,7 @@ async def test_scheduled_email_controller__lock_by_id(
 @pytest.mark.asyncio
 async def test_scheduled_email_controller__fail_by_id(
     scheduled_email_fixture: dict[str, Any],
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -265,9 +257,9 @@ async def test_scheduled_email_controller__fail_by_id(
     client.post.return_value = mock_post
     mock_post.json.return_value = scheduled_email_fixture
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
-    headers = controller.auth_headers(valid_auth_token.token)
+    headers = controller.auth_headers(token.token)
     id_ = uuid4()
     details = "Changed by tests"
 
@@ -286,7 +278,7 @@ async def test_scheduled_email_controller__fail_by_id(
 @pytest.mark.asyncio
 async def test_scheduled_email_controller__succeed_by_id(
     scheduled_email_fixture: dict[str, Any],
-    valid_auth_token: AuthToken,
+    token: AuthToken,
 ) -> None:
     # Arrange
     api_base_url = "http://localhost:8000/api"
@@ -295,9 +287,9 @@ async def test_scheduled_email_controller__succeed_by_id(
     client.post.return_value = mock_post
     mock_post.json.return_value = scheduled_email_fixture
 
-    token_cache = TokenCache(client, token=valid_auth_token)
+    token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
-    headers = controller.auth_headers(valid_auth_token.token)
+    headers = controller.auth_headers(token.token)
     id_ = uuid4()
     details = "Changed by tests"
 
