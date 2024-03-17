@@ -10,6 +10,7 @@ const env = { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_
 const APPLICATION_TAG = 'amy-email-worker';
 const BILLING_SERVICE_TAG = 'AMY';
 const STAGE = 'staging';
+const API_BASE_URL = 'https://test-amy2.carpentries.org/api'
 const app = new App();
 
 const vpcStack = new VpcStack(app, 'EmailWorkerVpc', {
@@ -23,6 +24,7 @@ const lambdaStack = new LambdaStack(app, 'EmailWorkerLambda', {
   env: env,
   vpc: vpcStack.vpc,
   stage: STAGE,
+  api_base_url: API_BASE_URL,
 });
 Tags.of(lambdaStack).add('ApplicationID', APPLICATION_TAG);
 Tags.of(lambdaStack).add('Billing-Service', BILLING_SERVICE_TAG);

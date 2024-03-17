@@ -8,6 +8,7 @@ import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-
 interface AdditionalProps extends StackProps {
   vpc: IVpc;
   stage: string;
+  api_base_url: string;
 }
 
 export class LambdaStack extends Stack {
@@ -19,11 +20,13 @@ export class LambdaStack extends Stack {
     const {
       vpc,
       stage,
+      api_base_url,
     } = props;
 
     const environment = {
       'OVERWRITE_OUTGOING_EMAILS': '',
       'STAGE': stage,
+      'API_BASE_URL': api_base_url,
     };
 
     if (stage != 'production') {
