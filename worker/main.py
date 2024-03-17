@@ -3,18 +3,12 @@ import logging
 from typing import Any
 
 import httpx
-import psycopg
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from psycopg.rows import dict_row
 
-from src.database import (
-    connection_string,
-    fetch_scheduled_emails_to_run,
-    read_database_credentials_from_ssm,
-)
+from src.api import ScheduledEmailController
 from src.handler import handle_email
 from src.settings import SETTINGS, STAGE, read_mailgun_credentials
-from src.token import CachedToken
+from src.token import TokenCache
 from src.types import WorkerOutput
 
 logging.basicConfig()
@@ -32,10 +26,11 @@ logger.setLevel(logging.INFO)  # use logging.DEBUG to see boto3 logs
 # 7. use authentication in the new API ✅
 # 8. use authentication in the worker ✅
 # 9. limit access only for accounts with special permission ✅
-# 10. update CDK with envvars ✅ / secrets ⏳
-# 11. create schemas for the endpoints
-# 12. add endpoints for managing emails
-# 13. rewrite email logic from handler below to use the new email endpoints
+# 10. update CDK with envvars ✅ / secrets (created by hand) ✅
+# 11. create schemas for the endpoints ❌ (doesn't seem to be needed)
+# 12. add endpoints for managing emails ✅
+# 13. rewrite email logic from handler below to use the new email endpoints ✅
+# 14. add tests for the new email management logic ✅
 
 
 async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
@@ -45,25 +40,20 @@ async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
     logger.info(f"Stage: {STAGE}")
     logger.info(f"Outgoing emails override: {overwrite_outgoing_emails}")
 
-    database_credentials = read_database_credentials_from_ssm()
-    logger.info("Obtained credentials for database.")
-
     mailgun_credentials = read_mailgun_credentials()
     logger.info("Obtained credentials for Mailgun.")
 
     result: WorkerOutput = {"emails": []}
 
-    token_cache = CachedToken()
+    async with httpx.AsyncClient() as client:
+        token_cache = TokenCache(client)
 
-    async with (
-        await psycopg.AsyncConnection.connect(
-            connection_string(database_credentials),
-            row_factory=dict_row,  # TODO: pydantic model for row_factory
-        ) as connection,
-        connection.cursor() as cursor,
-        httpx.AsyncClient() as client,
-    ):
-        emails = await fetch_scheduled_emails_to_run(cursor)
+        controller = ScheduledEmailController(
+            api_base_url=SETTINGS.API_BASE_URL,
+            client=client,
+            token_cache=token_cache,
+        )
+        emails = await controller.get_scheduled_to_run()
 
         result["emails"] = await asyncio.gather(
             *[
@@ -71,15 +61,13 @@ async def main(event: dict[Any, Any], context: LambdaContext) -> WorkerOutput:
                     email,
                     mailgun_credentials,
                     overwrite_outgoing_emails,
-                    cursor,
+                    controller,
                     client,
-                    token=await token_cache.get_token(client),
+                    token_cache,
                 )
                 for email in emails
             ]
         )
-
-        await connection.commit()
 
     logger.info(f"End handler with result: {result}")
     return result
