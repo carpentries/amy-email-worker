@@ -60,14 +60,16 @@ class ScheduledEmail(BaseModel):
     state: ScheduledEmailStatus
     scheduled_at: datetime
     to_header: list[str]
-    to_header_context_json: str  # JSON, TODO: validate what API/DRF returns
+
+    # JSON, e.g. '[{"api_uri": "api:person#1", "property": "email"}]'
+    to_header_context_json: str
     from_header: str
     reply_to_header: str
     cc_header: list[str]
     bcc_header: list[str]
     subject: str
     body: str
-    context_json: str  # JSON, TODO: validate what API/DRF returns
+    context_json: str  # JSON, e.g. '{"name": "John Doe"}'
     template_id: UUID
 
 
