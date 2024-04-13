@@ -1,15 +1,17 @@
-from typing import Optional
+from typing import Optional, cast
 
 import boto3
-from utils.types import SSMParameter
+
+from src.types import SSMParameter
 
 
+# TODO: turn into async, perhaps use aioboto3 for that
 def read_ssm_parameter(path: str) -> Optional[SSMParameter]:
     ssm_client = boto3.client("ssm")
     response = ssm_client.get_parameter(Name=path)
 
     if "Parameter" in response and response["Parameter"]:
-        return response["Parameter"]
+        return cast(SSMParameter, response["Parameter"])
 
     return None
 
