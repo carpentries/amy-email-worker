@@ -1,10 +1,11 @@
-import json
 import logging
+from typing import cast
 from uuid import UUID
 
 import httpx
 from jinja2 import DebugUndefined, Environment
 from jinja2.exceptions import TemplateSyntaxError
+from pydantic_core import ValidationError
 
 from src.api import ScheduledEmailController, UriError, context_entry, fetch_model_field
 from src.email import render_email, send_email
@@ -13,6 +14,7 @@ from src.types import (
     ContextModel,
     MailgunCredentials,
     ScheduledEmail,
+    SinglePropertyLinkModel,
     ToHeaderModel,
     WorkerOutputEmail,
 )
@@ -40,27 +42,33 @@ async def handle_email(
     client: httpx.AsyncClient,
     token_cache: TokenCache,
 ) -> WorkerOutputEmail:
-    id = email.id
+    id = email.pk
     logger.info(f"Working on email {id}.")
 
     locked_email = await controller.lock_by_id(id)
     logger.info(f"Locked email {id}.")
 
     try:
-        context = ContextModel(json.loads(locked_email.context_json))
-    except json.JSONDecodeError as exc:
+        context = ContextModel(locked_email.context_json)
+    except ValidationError as exc:
+        logger.error(f"Validation error: {exc}")
         return await return_fail_email(
             id,
-            f"Failed to read JSON from email context {id}. Error: {exc}",
+            f"Failed to read email context {id}.",
             controller,
         )
 
     try:
-        recipients = ToHeaderModel(root=json.loads(locked_email.to_header_context_json))
-    except json.JSONDecodeError as exc:
+        recipients = ToHeaderModel(
+            root=cast(
+                list[SinglePropertyLinkModel], locked_email.to_header_context_json
+            )
+        )
+    except ValidationError as exc:
+        logger.error(f"Validation error: {exc}")
         return await return_fail_email(
             id,
-            f"Failed to read JSON from email recipients {id}. Error: {exc}",
+            f"Failed to read email recipients {id}.",
             controller,
         )
 

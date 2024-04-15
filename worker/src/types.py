@@ -54,7 +54,7 @@ class ScheduledEmailStatus(Enum):
 
 
 class ScheduledEmail(BaseModel):
-    id: UUID
+    pk: UUID
     created_at: datetime
     last_updated_at: Optional[datetime]
     state: ScheduledEmailStatus
@@ -62,15 +62,15 @@ class ScheduledEmail(BaseModel):
     to_header: list[str]
 
     # JSON, e.g. '[{"api_uri": "api:person#1", "property": "email"}]'
-    to_header_context_json: str
+    to_header_context_json: list[dict[str, Any]]
     from_header: str
     reply_to_header: str
     cc_header: list[str]
     bcc_header: list[str]
     subject: str
     body: str
-    context_json: str  # JSON, e.g. '{"name": "John Doe"}'
-    template_id: UUID
+    context_json: dict[str, Any]  # JSON, e.g. '{"name": "John Doe"}'
+    template: str  # template name
 
 
 class RenderedScheduledEmail(ScheduledEmail):
