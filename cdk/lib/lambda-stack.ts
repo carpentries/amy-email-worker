@@ -40,7 +40,7 @@ export class LambdaStack extends Stack {
     this.lambdaFunction = new PythonFunction(this, 'EmailWorker', {
       functionName: 'amy-email-worker',
       architecture: Architecture.X86_64,  // more expensive than ARM
-      runtime: Runtime.PYTHON_3_10,
+      runtime: Runtime.PYTHON_3_11,
       entry: '../worker',
       index: 'main.py',
       handler: 'handler',
