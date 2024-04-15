@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any, cast
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -20,21 +21,21 @@ def scheduled_email() -> ScheduledEmail:
     id_ = uuid4()
     now_ = datetime.now(timezone.utc)
     return ScheduledEmail(
-        id=id_,
+        pk=id_,
         created_at=now_,
         last_updated_at=now_,
         state=ScheduledEmailStatus.SCHEDULED,
         scheduled_at=now_,
         to_header=[],
-        to_header_context_json='[{"api_uri": "api:person#1", "property": "email"}]',
+        to_header_context_json=[{"api_uri": "api:person#1", "property": "email"}],
         from_header="",
         reply_to_header="",
         cc_header=[],
         bcc_header=[],
         subject="Hello World and {{ name }}!",
         body="Welcome, {{ name }}!",
-        context_json='{"name": "value:str#John Doe"}',
-        template_id=id_,
+        context_json={"name": "value:str#John Doe"},
+        template="Welcome email",
     )
 
 
@@ -59,10 +60,10 @@ async def test_return_fail_email(scheduled_email: ScheduledEmail) -> None:
     controller.fail_by_id.return_value = scheduled_email
 
     # Act
-    result = await return_fail_email(scheduled_email.id, details, controller)
+    result = await return_fail_email(scheduled_email.pk, details, controller)
 
     # Assert
-    controller.fail_by_id.assert_awaited_once_with(scheduled_email.id, details=details)
+    controller.fail_by_id.assert_awaited_once_with(scheduled_email.pk, details=details)
 
     # no point in testing the values
     assert result.keys() == {"email", "status"}
@@ -108,7 +109,7 @@ async def test_handle_email__happy_path(
         "email": scheduled_email.model_dump(mode="json"),
         "status": scheduled_email.state.value,
     }
-    controller.lock_by_id.assert_awaited_once_with(scheduled_email.id)
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     mock_fetch_model_field.assert_awaited_once_with(
         "api:person#1", "email", client, token
     )
@@ -120,7 +121,7 @@ async def test_handle_email__happy_path(
     )
     mock_send_email.return_value.raise_for_status.assert_called_once()
     controller.succeed_by_id.assert_awaited_once_with(
-        scheduled_email.id,
+        scheduled_email.pk,
         "Email sent successfully. Mailgun response: "
         f"{mock_send_email.return_value.content}",
     )
@@ -134,7 +135,8 @@ async def test_handle_email__invalid_context_json(
     overwrite_outgoing_emails: str,
 ) -> None:
     # Arrange
-    scheduled_email.context_json = "{"  # invalid JSON
+    # forcing validation error
+    scheduled_email.context_json = cast(dict[str, Any], "{")
     failed_email = scheduled_email.model_copy(
         update={"state": ScheduledEmailStatus.FAILED}
     )
@@ -159,12 +161,10 @@ async def test_handle_email__invalid_context_json(
         "email": failed_email.model_dump(mode="json"),
         "status": failed_email.state.value,
     }
-    controller.lock_by_id.assert_awaited_once_with(scheduled_email.id)
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     controller.fail_by_id.assert_awaited_once_with(
-        scheduled_email.id,
-        details=f"Failed to read JSON from email context {scheduled_email.id}. "
-        "Error: Expecting property name enclosed in double quotes: "
-        "line 1 column 2 (char 1)",
+        scheduled_email.pk,
+        details=f"Failed to read email context {scheduled_email.pk}.",
     )
 
 
@@ -176,7 +176,8 @@ async def test_handle_email__invalid_to_header_context_json(
     overwrite_outgoing_emails: str,
 ) -> None:
     # Arrange
-    scheduled_email.to_header_context_json = "{"  # invalid JSON
+    # forcing validation error
+    scheduled_email.to_header_context_json = cast(list[dict[str, Any]], "{")
     failed_email = scheduled_email.model_copy(
         update={"state": ScheduledEmailStatus.FAILED}
     )
@@ -201,8 +202,11 @@ async def test_handle_email__invalid_to_header_context_json(
         "email": failed_email.model_dump(mode="json"),
         "status": failed_email.state.value,
     }
-    controller.lock_by_id.assert_awaited_once_with(scheduled_email.id)
-    controller.fail_by_id.assert_awaited_once_with(scheduled_email.id, details=ANY)
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
+    controller.fail_by_id.assert_awaited_once_with(
+        scheduled_email.pk,
+        details=f"Failed to read email recipients {scheduled_email.pk}.",
+    )
 
 
 @pytest.mark.asyncio
@@ -213,7 +217,7 @@ async def test_handle_email__unsupported_context_uri(
     overwrite_outgoing_emails: str,
 ) -> None:
     # Arrange
-    scheduled_email.context_json = '{"name": "unsupported#John Doe"}'
+    scheduled_email.context_json = {"name": "unsupported#John Doe"}
     failed_email = scheduled_email.model_copy(
         update={"state": ScheduledEmailStatus.FAILED}
     )
@@ -238,9 +242,9 @@ async def test_handle_email__unsupported_context_uri(
         "email": failed_email.model_dump(mode="json"),
         "status": failed_email.state.value,
     }
-    controller.lock_by_id.assert_awaited_once_with(scheduled_email.id)
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     controller.fail_by_id.assert_awaited_once_with(
-        scheduled_email.id,
+        scheduled_email.pk,
         details=(
             "Issue when generating context: Unsupported URI 'unsupported#John Doe' "
             "for context generation."
@@ -256,9 +260,9 @@ async def test_handle_email__invalid_recipients(
     overwrite_outgoing_emails: str,
 ) -> None:
     # Arrange
-    scheduled_email.to_header_context_json = (
-        '[{"api_uri": "unsupported#John Doe", "property": "email"}]'
-    )
+    scheduled_email.to_header_context_json = [
+        {"api_uri": "unsupported#John Doe", "property": "email"}
+    ]
     failed_email = scheduled_email.model_copy(
         update={"state": ScheduledEmailStatus.FAILED}
     )
@@ -283,11 +287,11 @@ async def test_handle_email__invalid_recipients(
         "email": failed_email.model_dump(mode="json"),
         "status": failed_email.state.value,
     }
-    controller.lock_by_id.assert_awaited_once_with(scheduled_email.id)
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     controller.fail_by_id.assert_awaited_once_with(
-        scheduled_email.id,
+        scheduled_email.pk,
         details=(
-            f"Issue when generating email {scheduled_email.id} recipients: "
+            f"Issue when generating email {scheduled_email.pk} recipients: "
             "Unsupported URI 'unsupported#John Doe'."
         ),
     )
@@ -329,11 +333,11 @@ async def test_handle_email__invalid_jinja2_template(
         "email": failed_email.model_dump(mode="json"),
         "status": failed_email.state.value,
     }
-    controller.lock_by_id.assert_awaited_once_with(scheduled_email.id)
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     controller.fail_by_id.assert_awaited_once_with(
-        scheduled_email.id,
+        scheduled_email.pk,
         details=(
-            f"Failed to render email {scheduled_email.id}. Error: unexpected '}}'"
+            f"Failed to render email {scheduled_email.pk}. Error: unexpected '}}'"
         ),
     )
 
@@ -378,8 +382,8 @@ async def test_handle_email__mailgun_error(
         "email": failed_email.model_dump(mode="json"),
         "status": failed_email.state.value,
     }
-    controller.lock_by_id.assert_awaited_once_with(scheduled_email.id)
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     controller.fail_by_id.assert_awaited_once_with(
-        scheduled_email.id,
-        details=(f"Failed to send email {scheduled_email.id}. Error: test"),
+        scheduled_email.pk,
+        details=(f"Failed to send email {scheduled_email.pk}. Error: test"),
     )

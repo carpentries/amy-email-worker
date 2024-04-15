@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -57,23 +57,23 @@ def test_render_email() -> None:
     # Arrange
     engine = Environment(autoescape=True, undefined=DebugUndefined)
     id_ = uuid4()
-    now_ = datetime.utcnow()
+    now_ = datetime.now(tz=UTC)
     email = ScheduledEmail(
-        id=id_,
+        pk=id_,
         created_at=now_,
         last_updated_at=now_,
         state=ScheduledEmailStatus.SCHEDULED,
         scheduled_at=now_,
         to_header=[],
-        to_header_context_json="[]",
+        to_header_context_json=[],
         from_header="",
         reply_to_header="",
         cc_header=[],
         bcc_header=[],
         subject="Hello World and {{ name }}!",
         body="Welcome, {{ name }}!",
-        context_json="{}",
-        template_id=id_,
+        context_json={},
+        template="Welcome email",
     )
     context = {"name": "John Doe"}
     recipients = ["jdoe@example.com", ""]  # empty string should be filtered out
@@ -95,15 +95,15 @@ async def test_send_email() -> None:
     # Arrange
     client = AsyncMock()
     id_ = uuid4()
-    now_ = datetime.utcnow()
+    now_ = datetime.now(tz=UTC)
     email = RenderedScheduledEmail(
-        id=id_,
+        pk=id_,
         created_at=now_,
         last_updated_at=now_,
         state=ScheduledEmailStatus.SCHEDULED,
         scheduled_at=now_,
         to_header=[],
-        to_header_context_json="[]",
+        to_header_context_json=[],
         to_header_rendered=["jdoe@example.com"],
         from_header="",
         reply_to_header="",
@@ -113,8 +113,8 @@ async def test_send_email() -> None:
         subject_rendered="Hello World and John Doe!",
         body="Welcome, {{ name }}!",
         body_rendered="Welcome, John Doe!",
-        context_json="{}",
-        template_id=id_,
+        context_json={},
+        template="Welcome email",
     )
     credentials = MailgunCredentials(
         MAILGUN_SENDER_DOMAIN="example.com",
@@ -146,15 +146,15 @@ async def test_send_email__outgoing_addresses_overwritten() -> None:
     # Arrange
     client = AsyncMock()
     id_ = uuid4()
-    now_ = datetime.utcnow()
+    now_ = datetime.now(tz=UTC)
     email = RenderedScheduledEmail(
-        id=id_,
+        pk=id_,
         created_at=now_,
         last_updated_at=now_,
         state=ScheduledEmailStatus.SCHEDULED,
         scheduled_at=now_,
         to_header=["test1@example.com"],
-        to_header_context_json="[]",
+        to_header_context_json=[],
         to_header_rendered=["jdoe@example.com"],
         from_header="from@example.com",
         reply_to_header="reply_to@example.com",
@@ -164,8 +164,8 @@ async def test_send_email__outgoing_addresses_overwritten() -> None:
         subject_rendered="Hello World and John Doe!",
         body="Welcome, {{ name }}!",
         body_rendered="Welcome, John Doe!",
-        context_json="{}",
-        template_id=id_,
+        context_json={},
+        template="Welcome email",
     )
     credentials = MailgunCredentials(
         MAILGUN_SENDER_DOMAIN="example.com",

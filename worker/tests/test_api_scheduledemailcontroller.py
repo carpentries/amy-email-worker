@@ -14,21 +14,21 @@ from src.types import AuthToken, ScheduledEmail
 def scheduled_email_fixture() -> dict[str, Any]:
     now = datetime.now(tz=timezone.utc)
     return {
-        "id": uuid4(),
+        "pk": uuid4(),
         "created_at": now,
         "last_updated_at": now,
         "state": "scheduled",
         "scheduled_at": now,
         "to_header": ["john@example.com"],
-        "to_header_context_json": '[{"api_uri": "api:person#1", "property": "email"}]',
+        "to_header_context_json": [{"api_uri": "api:person#1", "property": "email"}],
         "from_header": "team@example.com",
         "reply_to_header": "",
         "cc_header": [],
         "bcc_header": [],
         "subject": "Sample email",
         "body": "Hello, {{ name }}!",
-        "context_json": '{"name": "John"}',
-        "template_id": uuid4(),
+        "context_json": {"name": "John"},
+        "template": "Welcome email",
     }
 
 
