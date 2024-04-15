@@ -241,7 +241,7 @@ async def test_scheduled_email_controller__lock_by_id(
     # Assert
     assert result == ScheduledEmail(**scheduled_email_fixture)
     client.post.assert_awaited_once_with(
-        f"{api_base_url}/v2/scheduledemail/lock/{id_}", headers=headers
+        f"{api_base_url}/v2/scheduledemail/{id_}/lock", headers=headers
     )
 
 
@@ -269,7 +269,7 @@ async def test_scheduled_email_controller__fail_by_id(
     # Assert
     assert result == ScheduledEmail(**scheduled_email_fixture)
     client.post.assert_awaited_once_with(
-        f"{api_base_url}/v2/scheduledemail/fail/{id_}",
+        f"{api_base_url}/v2/scheduledemail/{id_}/fail",
         json={"details": "Changed by tests"},
         headers=headers,
     )
@@ -299,7 +299,7 @@ async def test_scheduled_email_controller__succeed_by_id(
     # Assert
     assert result == ScheduledEmail(**scheduled_email_fixture)
     client.post.assert_awaited_once_with(
-        f"{api_base_url}/v2/scheduledemail/succeed/{id_}",
+        f"{api_base_url}/v2/scheduledemail/{id_}/succeed",
         json={"details": "Changed by tests"},
         headers=headers,
     )

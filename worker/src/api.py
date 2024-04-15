@@ -79,7 +79,7 @@ class ScheduledEmailController:
         token = await self.token_cache.get_token()
         headers = self.auth_headers(token.token)
         result = await self.client.post(
-            f"{self.api_base_url}/v2/scheduledemail/lock/{id_}", headers=headers
+            f"{self.api_base_url}/v2/scheduledemail/{id_}/lock", headers=headers
         )
         result.raise_for_status()
         return ScheduledEmail(**result.json())
@@ -88,7 +88,7 @@ class ScheduledEmailController:
         token = await self.token_cache.get_token()
         headers = self.auth_headers(token.token)
         result = await self.client.post(
-            f"{self.api_base_url}/v2/scheduledemail/fail/{id_}",
+            f"{self.api_base_url}/v2/scheduledemail/{id_}/fail",
             json={"details": details},
             headers=headers,
         )
@@ -99,7 +99,7 @@ class ScheduledEmailController:
         token = await self.token_cache.get_token()
         headers = self.auth_headers(token.token)
         result = await self.client.post(
-            f"{self.api_base_url}/v2/scheduledemail/succeed/{id_}",
+            f"{self.api_base_url}/v2/scheduledemail/{id_}/succeed",
             json={"details": details},
             headers=headers,
         )
