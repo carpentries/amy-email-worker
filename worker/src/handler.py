@@ -80,7 +80,7 @@ async def handle_email(
             key: await context_entry(link, client, token)
             for key, link in context.root.items()
         }
-    except UriError as exc:
+    except (UriError, httpx.HTTPStatusError) as exc:
         return await return_fail_email(
             id,
             f"Issue when generating context: {exc}",
@@ -94,7 +94,7 @@ async def handle_email(
             )
             for recipient in recipients.root
         ]
-    except UriError as exc:
+    except (UriError, httpx.HTTPStatusError) as exc:
         return await return_fail_email(
             id,
             f"Issue when generating email {id} recipients: {exc}",
