@@ -253,6 +253,54 @@ async def test_handle_email__unsupported_context_uri(
 
 
 @pytest.mark.asyncio
+async def test_handle_email__api_error(
+    token: AuthToken,
+    scheduled_email: ScheduledEmail,
+    mailgun_credentials: MailgunCredentials,
+    overwrite_outgoing_emails: str,
+) -> None:
+    # Arrange
+    scheduled_email.context_json = {"name": "api:person#1"}
+    failed_email = scheduled_email.model_copy(
+        update={"state": ScheduledEmailStatus.FAILED}
+    )
+    client = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock(
+        side_effect=HTTPStatusError(
+            "Client error '404 Not Found'", request=MagicMock(), response=MagicMock()
+        )
+    )
+    client.get.return_value = mock_response
+
+    token_cache = TokenCache(client, token=token)
+    controller = AsyncMock()
+    controller.lock_by_id.return_value = scheduled_email
+    controller.fail_by_id.return_value = failed_email
+
+    # Act
+    result = await handle_email(
+        scheduled_email,
+        mailgun_credentials,
+        overwrite_outgoing_emails,
+        controller,
+        client,
+        token_cache,
+    )
+
+    # Assert
+    assert result == {
+        "email": failed_email.model_dump(mode="json"),
+        "status": failed_email.state.value,
+    }
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
+    controller.fail_by_id.assert_awaited_once_with(
+        scheduled_email.pk,
+        details="Issue when generating context: Client error '404 Not Found'",
+    )
+
+
+@pytest.mark.asyncio
 async def test_handle_email__invalid_recipients(
     token: AuthToken,
     scheduled_email: ScheduledEmail,
