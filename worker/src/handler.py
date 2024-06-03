@@ -7,7 +7,13 @@ from jinja2 import DebugUndefined, Environment
 from jinja2.exceptions import TemplateSyntaxError
 from pydantic_core import ValidationError
 
-from src.api import ScheduledEmailController, UriError, context_entry, fetch_model_field
+from src.api import (
+    ScheduledEmailController,
+    UriError,
+    context_entry,
+    fetch_model_field,
+    scalar_value_from_uri,
+)
 from src.email import render_email, send_email
 from src.token import TokenCache
 from src.types import (
@@ -15,6 +21,7 @@ from src.types import (
     MailgunCredentials,
     ScheduledEmail,
     SinglePropertyLinkModel,
+    SingleValueLinkModel,
     ToHeaderModel,
     WorkerOutputEmail,
 )
@@ -61,7 +68,8 @@ async def handle_email(
     try:
         recipients = ToHeaderModel(
             root=cast(
-                list[SinglePropertyLinkModel], locked_email.to_header_context_json
+                list[SinglePropertyLinkModel | SingleValueLinkModel],
+                locked_email.to_header_context_json,
             )
         )
     except ValidationError as exc:
@@ -89,7 +97,9 @@ async def handle_email(
 
     try:
         recipient_addresses_list = [
-            await fetch_model_field(
+            str(scalar_value_from_uri(recipient.value_uri))
+            if isinstance(recipient, SingleValueLinkModel)
+            else await fetch_model_field(
                 recipient.api_uri, recipient.property, client, token
             )
             for recipient in recipients.root

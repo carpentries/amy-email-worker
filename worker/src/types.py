@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
-BasicTypes = str | int | float | bool | None
+BasicTypes = str | int | float | bool | datetime | None
 Stage = Literal["prod", "staging"]
 
 
@@ -94,7 +94,11 @@ class SinglePropertyLinkModel(BaseModel):
     property: str
 
 
-ToHeaderModel = RootModel[list[SinglePropertyLinkModel]]
+class SingleValueLinkModel(BaseModel):
+    value_uri: str
+
+
+ToHeaderModel = RootModel[list[SinglePropertyLinkModel | SingleValueLinkModel]]
 
 ContextModel = RootModel[dict[str, str | list[str]]]
 

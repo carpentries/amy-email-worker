@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -68,6 +69,9 @@ def test_map_api_uri_to_url__unsupported_uri() -> None:
         ("value:bool#true", True),
         ("value:bool#false", False),
         ("value:none#", None),
+        ("value:none#None", None),
+        ("value:none#asdf123", None),
+        ("value:date#2022-01-01T12:01Z", datetime(2022, 1, 1, 12, 1, tzinfo=UTC)),
     ],
 )
 def test_scalar_value_from_uri(uri: str, expected: Any) -> None:
