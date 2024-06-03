@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Callable, cast
 from urllib.parse import ParseResult, urlparse
 from uuid import UUID
@@ -131,17 +132,16 @@ def scalar_value_from_uri(uri: str) -> BasicTypes:
         "int": int,
         "float": float,
         "bool": lambda x: x.lower() == "true",
+        "date": datetime.fromisoformat,
+        "none": lambda _: None,
     }
 
     match urlparse(uri):
         case ParseResult(
             scheme="value", netloc="", path=path, params="", query="", fragment=value
         ):
-            if path == "none":
-                return None
-
             try:
-                return cast(str | int | float | bool, mapping[path](value))
+                return cast(BasicTypes, mapping[path](value))
             except KeyError as exc:
                 raise UriError(f"Unsupported scalar type {path!r}.") from exc
             except ValueError as exc:
