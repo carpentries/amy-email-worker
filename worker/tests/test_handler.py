@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any, cast
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -11,6 +11,7 @@ from src.token import TokenCache
 from src.types import (
     AuthToken,
     MailgunCredentials,
+    RenderedScheduledEmail,
     ScheduledEmail,
     ScheduledEmailStatus,
 )
@@ -33,7 +34,7 @@ def scheduled_email() -> ScheduledEmail:
         cc_header=[],
         bcc_header=[],
         subject="Hello World and {{ name }}!",
-        body="Welcome, {{ name }}!",
+        body="Welcome, {{ name }}!\n\nNew paragraph.",
         context_json={"name": "value:str#John Doe"},
         template="Welcome email",
     )
@@ -87,6 +88,13 @@ async def test_handle_email__happy_path(
     controller.lock_by_id.return_value = scheduled_email
     controller.succeed_by_id.return_value = scheduled_email
 
+    expected_rendered_email = RenderedScheduledEmail(
+        **scheduled_email.model_dump(),
+        to_header_rendered=["person@example.org"],
+        subject_rendered="Hello World and John Doe!",
+        body_rendered="<p>Welcome, John Doe!</p>\n<p>New paragraph.</p>",
+    )
+
     mock_fetch_model_field.return_value = "person@example.org"
     mock_send_email.return_value.content = {
         "message": "Queued. Thank you.",
@@ -115,7 +123,7 @@ async def test_handle_email__happy_path(
     )
     mock_send_email.assert_awaited_once_with(
         client,
-        ANY,
+        expected_rendered_email,
         mailgun_credentials,
         overwrite_outgoing_emails=overwrite_outgoing_emails,
     )

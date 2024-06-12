@@ -21,6 +21,7 @@ repos:
           - aws_lambda_powertools
           - boto3
           - types-boto3
+          - types-markdown
           - httpx
           - jinja2
           - psycopg

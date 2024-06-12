@@ -3,6 +3,7 @@ from typing import cast
 from uuid import UUID
 
 import httpx
+import markdown
 from jinja2 import DebugUndefined, Environment
 from jinja2.exceptions import TemplateSyntaxError
 from pydantic_core import ValidationError
@@ -124,6 +125,11 @@ async def handle_email(
             f"Failed to render email {id}. Error: {exc}",
             controller,
         )
+
+    # Render the markdown body of the email
+    logger.info(f"Rendering email's MD body {id}.")
+    body_html = markdown.markdown(rendered_email.body_rendered)
+    rendered_email.body_rendered = body_html
 
     try:
         logger.info(f"Attempting to send email {id}.")
