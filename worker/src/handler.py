@@ -5,7 +5,7 @@ from uuid import UUID
 import httpx
 import markdown
 from jinja2 import DebugUndefined, Environment
-from jinja2.exceptions import TemplateSyntaxError
+from jinja2.exceptions import TemplateError
 from pydantic_core import ValidationError
 
 from src.api import (
@@ -119,7 +119,7 @@ async def handle_email(
         rendered_email = render_email(
             engine, locked_email, context_dict, recipient_addresses_list
         )
-    except TemplateSyntaxError as exc:
+    except TemplateError as exc:
         return await return_fail_email(
             id,
             f"Failed to render email {id}. Error: {exc}",
