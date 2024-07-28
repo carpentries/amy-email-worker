@@ -81,7 +81,14 @@ async def handle_email(
             controller,
         )
 
-    token = await token_cache.get_token()
+    try:
+        token = await token_cache.get_token()
+    except httpx.HTTPError as exc:
+        return await return_fail_email(
+            id,
+            f"Failed to get API auth token. Error: {exc}",
+            controller,
+        )
 
     # Fetch data from API for context and recipients
     try:
@@ -89,7 +96,7 @@ async def handle_email(
             key: await context_entry(link, client, token)
             for key, link in context.root.items()
         }
-    except (UriError, httpx.HTTPStatusError) as exc:
+    except (UriError, httpx.HTTPError) as exc:
         return await return_fail_email(
             id,
             f"Issue when generating context: {exc}",
@@ -105,7 +112,7 @@ async def handle_email(
             )
             for recipient in recipients.root
         ]
-    except (UriError, httpx.HTTPStatusError) as exc:
+    except (UriError, httpx.HTTPError) as exc:
         return await return_fail_email(
             id,
             f"Issue when generating email {id} recipients: {exc}",
