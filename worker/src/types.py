@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, RootModel
 
 BasicTypes = str | int | float | bool | datetime | None
-Stage = Literal["prod", "staging"]
+Stage = Literal["production", "staging"]
 
 
 class NotFoundError(Exception):
