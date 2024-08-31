@@ -49,6 +49,7 @@ To work on CDK (Cloud Development Kit) for AWS Cloud you should install:
 
 Additionally you will probably want to set up your [AWS CLI](https://aws.amazon.com/cli/) and credentials.
 
+**More instructions available in `cdk/README.md` file.**
 
 ## Python paths and modules
 
