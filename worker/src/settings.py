@@ -8,10 +8,11 @@ from src.types import Credentials, MailgunCredentials, Settings, Stage
 def read_settings_from_env() -> Settings:
     return Settings(
         OVERWRITE_OUTGOING_EMAILS=os.getenv("OVERWRITE_OUTGOING_EMAILS") or "",
-        STAGE=cast(Stage, stage)
-        if (stage := os.getenv("STAGE")) in ["staging", "prod"]
-        else "staging",
-        # TODO: add in cdk
+        STAGE=(
+            cast(Stage, stage)
+            if (stage := os.getenv("STAGE", "staging")) in ["production", "staging"]
+            else "staging"
+        ),
         API_BASE_URL=os.getenv("API_BASE_URL") or "http://localhost:8000/api",
     )
 
