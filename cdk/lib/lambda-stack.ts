@@ -4,10 +4,11 @@ import { IVpc } from "aws-cdk-lib/aws-ec2";
 import { Architecture, IFunction, Runtime } from "aws-cdk-lib/aws-lambda";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
 import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import type { Stage } from './types';
 
 interface AdditionalProps extends StackProps {
   vpc: IVpc;
-  stage: string;
+  stage: Stage;
   api_base_url: string;
 }
 
@@ -38,7 +39,7 @@ export class LambdaStack extends Stack {
     });
 
     this.lambdaFunction = new PythonFunction(this, 'EmailWorker', {
-      functionName: 'amy-email-worker',
+      functionName: `amy-email-worker-${stage}`,
       architecture: Architecture.X86_64,  // more expensive than ARM
       runtime: Runtime.PYTHON_3_11,
       entry: '../worker',
