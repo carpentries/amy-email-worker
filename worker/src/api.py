@@ -7,6 +7,7 @@ from urllib.parse import ParseResult, urlparse
 from uuid import UUID
 
 import httpx
+from pydantic_core import ValidationError
 
 from src.settings import SETTINGS
 from src.token import TokenCache
@@ -73,7 +74,14 @@ class ScheduledEmailController:
     async def get_scheduled_to_run(self) -> list[ScheduledEmail]:
         url = f"{self.api_base_url}/v2/scheduledemail/scheduled_to_run?page={{}}"
         results = await self.get_paginated(url)
-        scheduled_emails = [ScheduledEmail(**result) for result in results]
+        scheduled_emails = []
+        for result in results:
+            try:
+                scheduled_email = ScheduledEmail(**result)
+                scheduled_emails.append(scheduled_email)
+            except ValidationError as exc:
+                logger.warning(f"Error loading ScheduledEmail: {exc}")
+                logger.warning("That ScheduledEmail will be skipped.")
         return scheduled_emails
 
     async def lock_by_id(self, id_: UUID) -> ScheduledEmail:

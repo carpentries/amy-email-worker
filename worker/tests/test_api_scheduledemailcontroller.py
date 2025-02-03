@@ -219,6 +219,34 @@ async def test_scheduled_email_controller__get_scheduled_to_run(
 
 
 @pytest.mark.asyncio
+async def test_scheduled_email_controller__get_scheduled_to_run__invalid_json(
+    scheduled_email_fixture: dict[str, Any],
+    token: AuthToken,
+) -> None:
+    # Arrange
+    api_base_url = "http://localhost:8000/api"
+    client = AsyncMock()
+    mock_get1 = MagicMock()
+    mock_get2 = MagicMock()
+    client.get.side_effect = [mock_get1, mock_get2]
+
+    mock_get1.status_code = 200
+    mock_get1.json.return_value = {"results": [scheduled_email_fixture, {}]}
+    mock_get2.status_code = 404
+
+    token_cache = TokenCache(client, token=token)
+    controller = ScheduledEmailController(api_base_url, client, token_cache)
+
+    # Act
+    results = await controller.get_scheduled_to_run()
+
+    # Assert
+    assert results == [
+        ScheduledEmail(**scheduled_email_fixture),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_scheduled_email_controller__lock_by_id(
     scheduled_email_fixture: dict[str, Any],
     token: AuthToken,

@@ -70,7 +70,7 @@ class ScheduledEmail(BaseModel):
     subject: str
     body: str
     context_json: dict[str, Any]  # JSON, e.g. '{"name": "John Doe"}'
-    template: str  # template name
+    template: str | None  # template name
 
 
 class RenderedScheduledEmail(ScheduledEmail):
