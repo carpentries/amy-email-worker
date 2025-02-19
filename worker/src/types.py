@@ -45,6 +45,11 @@ class Credentials:
     PASSWORD: str
 
 
+class Attachment(BaseModel):
+    filename: str | None
+    s3_path: str
+
+
 class ScheduledEmailStatus(Enum):
     SCHEDULED = "scheduled"
     LOCKED = "locked"
@@ -72,11 +77,19 @@ class ScheduledEmail(BaseModel):
     context_json: dict[str, Any]  # JSON, e.g. '{"name": "John Doe"}'
     template: str | None  # template name
 
+    attachments: list[Attachment]
+
+
+class AttachmentWithContent(BaseModel):
+    filename: str | None
+    content: bytes
+
 
 class RenderedScheduledEmail(ScheduledEmail):
     to_header_rendered: list[str]
     subject_rendered: str
     body_rendered: str
+    attachments_with_content: list[AttachmentWithContent]
 
 
 class WorkerOutputEmail(TypedDict):
