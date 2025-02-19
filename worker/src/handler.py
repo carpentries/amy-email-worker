@@ -15,7 +15,7 @@ from src.api import (
     fetch_model_field,
     scalar_value_from_uri,
 )
-from src.email import render_email, send_email
+from src.email import read_attachment_from_s3, render_email, send_email
 from src.token import TokenCache
 from src.types import (
     ContextModel,
@@ -105,10 +105,12 @@ async def handle_email(
 
     try:
         recipient_addresses_list = [
-            str(scalar_value_from_uri(recipient.value_uri))
-            if isinstance(recipient, SingleValueLinkModel)
-            else await fetch_model_field(
-                recipient.api_uri, recipient.property, client, token
+            (
+                str(scalar_value_from_uri(recipient.value_uri))
+                if isinstance(recipient, SingleValueLinkModel)
+                else await fetch_model_field(
+                    recipient.api_uri, recipient.property, client, token
+                )
             )
             for recipient in recipients.root
         ]
@@ -137,6 +139,12 @@ async def handle_email(
     logger.info(f"Rendering email's MD body {id}.")
     body_html = markdown.markdown(rendered_email.body_rendered)
     rendered_email.body_rendered = body_html
+
+    # Read attachments from S3
+    logger.info("Reading attachments from S3.")
+    rendered_email.attachments_with_content = [
+        read_attachment_from_s3(attachment) for attachment in rendered_email.attachments
+    ]
 
     try:
         logger.info(f"Attempting to send email {id}.")
