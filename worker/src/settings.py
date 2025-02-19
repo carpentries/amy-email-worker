@@ -1,7 +1,7 @@
 import os
 from typing import cast
 
-from src.ssm import get_parameter_value, read_ssm_parameter
+from src.aws import get_parameter_value, read_ssm_parameter
 from src.types import Credentials, MailgunCredentials, Settings, Stage
 
 
@@ -60,3 +60,9 @@ def read_token_credentials_from_ssm() -> Credentials:
         USER=token_user,
         PASSWORD=token_password,
     )
+
+
+def read_s3_bucket_from_ssm() -> str:
+    bucket_parameter = read_ssm_parameter(f"/{STAGE}/email-worker/s3_bucket")
+    bucket = get_parameter_value(bucket_parameter) if bucket_parameter else "fakeBucket"
+    return bucket
