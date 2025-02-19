@@ -3,7 +3,17 @@ from typing import Any
 from httpx import AsyncClient, Response
 from jinja2 import Environment
 
-from src.types import MailgunCredentials, RenderedScheduledEmail, ScheduledEmail
+from src.aws import inmemory_s3_download
+from src.settings import read_s3_bucket_from_ssm
+from src.types import (
+    Attachment,
+    AttachmentWithContent,
+    MailgunCredentials,
+    RenderedScheduledEmail,
+    ScheduledEmail,
+)
+
+BUCKET_NAME = read_s3_bucket_from_ssm()
 
 
 def render_template_from_string(
@@ -30,6 +40,11 @@ def render_email(
     )
 
 
+def read_attachment_from_s3(attachment: Attachment) -> AttachmentWithContent:
+    file_contents = inmemory_s3_download(BUCKET_NAME, attachment.s3_path)
+    return AttachmentWithContent(filename=attachment.filename, content=file_contents)
+
+
 async def send_email(
     client: AsyncClient,
     email: RenderedScheduledEmail,
@@ -49,6 +64,10 @@ async def send_email(
     return await client.post(
         url,
         auth=("api", credentials.MAILGUN_API_KEY),
+        files=[
+            ("attachment", (attachment.filename or "attachment", attachment.content))
+            for attachment in email.attachments_with_content
+        ],
         data={
             "from": email.from_header,
             "to": to,
