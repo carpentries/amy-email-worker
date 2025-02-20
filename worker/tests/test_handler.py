@@ -9,6 +9,8 @@ import pytest
 from src.handler import handle_email, return_fail_email
 from src.token import TokenCache
 from src.types import (
+    Attachment,
+    AttachmentWithContent,
     AuthToken,
     MailgunCredentials,
     RenderedScheduledEmail,
@@ -37,6 +39,12 @@ def scheduled_email() -> ScheduledEmail:
         body="Welcome, {{ name }}!\n\nNew paragraph.",
         context_json={"name": "value:str#John Doe"},
         template="Welcome email",
+        attachments=[
+            Attachment(
+                filename="certificate.pdf",
+                s3_path="certificates/random-person/certificate.pdf",
+            )
+        ],
     )
 
 
@@ -73,7 +81,9 @@ async def test_return_fail_email(scheduled_email: ScheduledEmail) -> None:
 @pytest.mark.asyncio
 @patch("src.handler.send_email")
 @patch("src.handler.fetch_model_field")
+@patch("src.handler.read_attachment_from_s3")
 async def test_handle_email__happy_path(
+    mock_read_attachment_from_s3: MagicMock,
     mock_fetch_model_field: AsyncMock,
     mock_send_email: AsyncMock,
     token: AuthToken,
@@ -93,6 +103,7 @@ async def test_handle_email__happy_path(
         to_header_rendered=["person@example.org"],
         subject_rendered="Hello World and John Doe!",
         body_rendered="<p>Welcome, John Doe!</p>\n<p>New paragraph.</p>",
+        attachments_with_content=[AttachmentWithContent(filename="certificate.pdf", content=b"Test")],
     )
 
     mock_fetch_model_field.return_value = "person@example.org"
@@ -101,6 +112,7 @@ async def test_handle_email__happy_path(
         "id": "<20111114174239.25659.5817@samples.mailgun.org>",
     }
     mock_send_email.return_value.raise_for_status = MagicMock()
+    mock_read_attachment_from_s3.return_value = AttachmentWithContent(filename="certificate.pdf", content=b"Test")
 
     # Act
     result = await handle_email(
@@ -376,7 +388,9 @@ async def test_handle_email__invalid_jinja2_template(
 @pytest.mark.asyncio
 @patch("src.handler.send_email")
 @patch("src.handler.fetch_model_field")
+@patch("src.handler.read_attachment_from_s3")
 async def test_handle_email__mailgun_error(
+    mock_read_attachment_from_s3: MagicMock,
     mock_fetch_model_field: AsyncMock,
     mock_send_email: AsyncMock,
     token: AuthToken,
@@ -415,4 +429,47 @@ async def test_handle_email__mailgun_error(
     controller.fail_by_id.assert_awaited_once_with(
         scheduled_email.pk,
         details=(f"Failed to send email {scheduled_email.pk}. Error: test"),
+    )
+
+
+@pytest.mark.asyncio
+@patch("src.handler.fetch_model_field")
+@patch("src.handler.read_attachment_from_s3")
+async def test_handle_email__s3_error(
+    mock_read_attachment_from_s3: MagicMock,
+    mock_fetch_model_field: AsyncMock,
+    token: AuthToken,
+    scheduled_email: ScheduledEmail,
+    mailgun_credentials: MailgunCredentials,
+    overwrite_outgoing_emails: str,
+) -> None:
+    # Arrange
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
+    client = AsyncMock()
+    token_cache = TokenCache(client, token=token)
+    controller = AsyncMock()
+    controller.lock_by_id.return_value = scheduled_email
+    controller.fail_by_id.return_value = failed_email
+    mock_fetch_model_field.return_value = "person@example.org"
+    mock_read_attachment_from_s3.side_effect = Exception("???")  # TODO: use real exception
+
+    # Act
+    result = await handle_email(
+        scheduled_email,
+        mailgun_credentials,
+        overwrite_outgoing_emails,
+        controller,
+        client,
+        token_cache,
+    )
+
+    # Assert
+    assert result == {
+        "email": failed_email.model_dump(mode="json"),
+        "status": failed_email.state.value,
+    }
+    controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
+    controller.fail_by_id.assert_awaited_once_with(
+        scheduled_email.pk,
+        details=(f"Failed to download attachments for email {scheduled_email.pk}. Error: ???"),
     )

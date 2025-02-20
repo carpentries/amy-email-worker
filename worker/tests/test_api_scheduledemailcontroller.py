@@ -29,6 +29,12 @@ def scheduled_email_fixture() -> dict[str, Any]:
         "body": "Hello, {{ name }}!",
         "context_json": {"name": "John"},
         "template": "Welcome email",
+        "attachments": [
+            {
+                "filename": "certificate.pdf",
+                "s3_path": "certs/random-person/certificate.pdf",
+            }
+        ],
     }
 
 

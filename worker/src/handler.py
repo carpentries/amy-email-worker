@@ -133,9 +133,16 @@ async def handle_email(
 
     # Read attachments from S3
     logger.info("Reading attachments from S3.")
-    rendered_email.attachments_with_content = [
-        read_attachment_from_s3(attachment) for attachment in rendered_email.attachments
-    ]
+    try:
+        rendered_email.attachments_with_content = [
+            read_attachment_from_s3(attachment) for attachment in rendered_email.attachments
+        ]
+    except Exception as exc:  # TODO: what exception actually this is? boto3 I guess
+        return await return_fail_email(
+            id,
+            f"Failed to download attachments for email {id}. Error: {exc}",
+            controller,
+        )
 
     try:
         logger.info(f"Attempting to send email {id}.")
