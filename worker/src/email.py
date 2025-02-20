@@ -13,12 +13,8 @@ from src.types import (
     ScheduledEmail,
 )
 
-BUCKET_NAME = read_s3_bucket_from_ssm()
 
-
-def render_template_from_string(
-    engine: Environment, template: str, context: dict[str, Any]
-) -> str:
+def render_template_from_string(engine: Environment, template: str, context: dict[str, Any]) -> str:
     return engine.from_string(template).render(context)
 
 
@@ -37,11 +33,13 @@ def render_email(
         to_header_rendered=to_header_rendered,
         subject_rendered=subject_rendered,
         body_rendered=body_rendered,
+        attachments_with_content=[],
     )
 
 
 def read_attachment_from_s3(attachment: Attachment) -> AttachmentWithContent:
-    file_contents = inmemory_s3_download(BUCKET_NAME, attachment.s3_path)
+    bucket_name = read_s3_bucket_from_ssm()
+    file_contents = inmemory_s3_download(bucket_name, attachment.s3_path)
     return AttachmentWithContent(filename=attachment.filename, content=file_contents)
 
 

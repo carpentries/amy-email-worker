@@ -3,9 +3,9 @@ from typing import Any
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
 from jinja2 import DebugUndefined, Environment
 from jinja2.exceptions import TemplateSyntaxError
+import pytest
 
 from src.email import render_email, render_template_from_string, send_email
 from src.types import (

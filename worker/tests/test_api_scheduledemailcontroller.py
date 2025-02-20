@@ -83,13 +83,9 @@ async def test_scheduled_email_controller__get_paginated(
     client.get.side_effect = [mock_get1, mock_get2, mock_get3]
 
     mock_get1.status_code = 200
-    mock_get1.json.return_value = {
-        "results": [{"id": "9116a1af-f361-4633-8990-5e16e43683e3"}]
-    }
+    mock_get1.json.return_value = {"results": [{"id": "9116a1af-f361-4633-8990-5e16e43683e3"}]}
     mock_get2.status_code = 200
-    mock_get2.json.return_value = {
-        "results": [{"id": "bffca722-d774-4b78-84d4-56863c5e923d"}]
-    }
+    mock_get2.json.return_value = {"results": [{"id": "bffca722-d774-4b78-84d4-56863c5e923d"}]}
     mock_get3.status_code = 404
 
     token_cache = TokenCache(client, token=token)
@@ -120,9 +116,7 @@ async def test_scheduled_email_controller__get_paginated__safety_break_at_max_pa
     client.get.side_effect = [mock_get] * 100
 
     mock_get.status_code = 200
-    mock_get.json.return_value = {
-        "results": [{"id": "9116a1af-f361-4633-8990-5e16e43683e3"}]
-    }
+    mock_get.json.return_value = {"results": [{"id": "9116a1af-f361-4633-8990-5e16e43683e3"}]}
 
     token_cache = TokenCache(client, token=token)
     controller = ScheduledEmailController(api_base_url, client, token_cache)
@@ -149,9 +143,7 @@ async def test_scheduled_email_controller__get_all(
     client.get.side_effect = [mock_get1, mock_get2]
 
     mock_get1.status_code = 200
-    mock_get1.json.return_value = {
-        "results": [scheduled_email_fixture, scheduled_email_fixture]
-    }
+    mock_get1.json.return_value = {"results": [scheduled_email_fixture, scheduled_email_fixture]}
     mock_get2.status_code = 404
 
     token_cache = TokenCache(client, token=token)
@@ -187,9 +179,7 @@ async def test_scheduled_email_controller__get_scheduled_to_run(
     client.get.side_effect = [mock_get1, mock_get2]
 
     mock_get1.status_code = 200
-    mock_get1.json.return_value = {
-        "results": [scheduled_email_fixture, scheduled_email_fixture]
-    }
+    mock_get1.json.return_value = {"results": [scheduled_email_fixture, scheduled_email_fixture]}
     mock_get2.status_code = 404
 
     token_cache = TokenCache(client, token=token)
@@ -268,9 +258,7 @@ async def test_scheduled_email_controller__lock_by_id(
 
     # Assert
     assert result == ScheduledEmail(**scheduled_email_fixture)
-    client.post.assert_awaited_once_with(
-        f"{api_base_url}/v2/scheduledemail/{id_}/lock", headers=headers
-    )
+    client.post.assert_awaited_once_with(f"{api_base_url}/v2/scheduledemail/{id_}/lock", headers=headers)
 
 
 @pytest.mark.asyncio

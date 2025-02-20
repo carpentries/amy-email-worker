@@ -37,9 +37,7 @@ async def test_cached_token__fetch_token(
     token = await cached_token.fetch_token()
 
     # Assert
-    client.post.assert_awaited_once_with(
-        "http://localhost:8000/api/auth/login/", auth=("test", "test")
-    )
+    client.post.assert_awaited_once_with("http://localhost:8000/api/auth/login/", auth=("test", "test"))
     assert token.model_dump(mode="json") == {
         "expiry": "2022-01-01T00:00:00Z",
         "token": "testToken",

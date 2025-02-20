@@ -1,36 +1,39 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
-    -   id: check-byte-order-marker
-    -   id: check-json
-    -   id: check-merge-conflict
-    -   id: detect-aws-credentials
-    -   id: end-of-file-fixer
--   repo: https://github.com/psf/black
-    rev: 24.8.0
+      -  id: fix-byte-order-marker
+      -  id: check-json
+      -  id: check-merge-conflict
+      -  id: detect-aws-credentials
+      -  id: end-of-file-fixer
+
+  - repo: local
     hooks:
-    -   id: black
--   repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
+      - id: black
+        name: Python Black
+        entry: poetry -P ./worker run black
+        require_serial: true
+        language: system
+        types: [python]
+
+      - id: flake8
+        name: Python Flake8
+        entry: poetry -P ./worker run flake8 --toml-config ./worker/pyproject.toml
+        require_serial: true
+        language: system
+        types: [python]
+
       - id: isort
--   repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
-    hooks:
-    -   id: flake8
-        args: [--max-line-length=88]
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
-    hooks:
-    -   id: mypy
-        args: [--strict]
-        additional_dependencies:
-          - aws_lambda_powertools
-          - boto3
-          - types-boto3
-          - types-markdown
-          - httpx
-          - jinja2
-          - pydantic
-          - pytest
+        name: Python isort
+        entry: poetry -P ./worker run isort
+        require_serial: true
+        language: system
+        types: [python]
+
+      - id: mypy
+        name: Python Typing (mypy) strict
+        entry: poetry -P ./worker run mypy --follow-imports=silent
+        require_serial: true
+        language: system
+        types: [python]

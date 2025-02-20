@@ -41,9 +41,7 @@ def test_map_api_uri_to_url__unexpected_scheme() -> None:
     uri = "value:int#123456"
 
     # Act & Assert
-    with pytest.raises(
-        UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
-    ):
+    with pytest.raises(UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."):
         map_api_uri_to_url(uri)
 
 
@@ -51,9 +49,7 @@ def test_map_api_uri_to_url__unsupported_uri() -> None:
     # Arrange
     uri = "value:int#123456"
     # Act & Assert
-    with pytest.raises(
-        UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."
-    ):
+    with pytest.raises(UriError, match="Unexpected API URI 'value' scheme. Expected only 'api'."):
         map_api_uri_to_url(uri)
 
 
@@ -140,9 +136,7 @@ async def test_fetch_model_field(mock_fetch_model: AsyncMock, token: AuthToken) 
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_fetch_model_field__property_string_conversion(
-    mock_fetch_model: AsyncMock, token: AuthToken
-) -> None:
+async def test_fetch_model_field__property_string_conversion(mock_fetch_model: AsyncMock, token: AuthToken) -> None:
     # Arrange
     uri = "api:person#123456"
     property = "age"
@@ -163,9 +157,7 @@ async def test_fetch_model_field__property_string_conversion(
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_fetch_model_field__invalid_property(
-    mock_fetch_model: AsyncMock, token: AuthToken
-) -> None:
+async def test_fetch_model_field__invalid_property(mock_fetch_model: AsyncMock, token: AuthToken) -> None:
     # Arrange
     uri = "api:person#123456"
     property = "email"
@@ -192,9 +184,7 @@ async def test_context_entry__scalar(token: AuthToken) -> None:
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_context_entry__model(
-    mock_fetch_model: AsyncMock, token: AuthToken
-) -> None:
+async def test_context_entry__model(mock_fetch_model: AsyncMock, token: AuthToken) -> None:
     # Arrange
     uri = "api:person#123456"
     mock_fetch_model.return_value = {"id": 123456, "name": "John Doe"}
@@ -223,9 +213,7 @@ async def test_context_entry__unsupported_uri(token: AuthToken) -> None:
 
 @pytest.mark.asyncio
 @patch("src.api.fetch_model")
-async def test_context_entry__multiple_models(
-    mock_fetch_model: AsyncMock, token: AuthToken
-) -> None:
+async def test_context_entry__multiple_models(mock_fetch_model: AsyncMock, token: AuthToken) -> None:
     # Arrange
     uris = [
         "api:person#123456",

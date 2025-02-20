@@ -1,7 +1,7 @@
 import asyncio
-import logging
 from dataclasses import dataclass
 from datetime import datetime
+import logging
 from typing import Any, Callable, cast
 from urllib.parse import ParseResult, urlparse
 from uuid import UUID
@@ -32,15 +32,11 @@ class ScheduledEmailController:
     async def get_by_id(self, id_: UUID) -> ScheduledEmail:
         token = await self.token_cache.get_token()
         headers = self.auth_headers(token.token)
-        result = await self.client.get(
-            f"{self.api_base_url}/v2/scheduledemail/{id_}", headers=headers
-        )
+        result = await self.client.get(f"{self.api_base_url}/v2/scheduledemail/{id_}", headers=headers)
         result.raise_for_status()
         return ScheduledEmail(**result.json())
 
-    async def get_paginated(
-        self, url: str, *, max_pages: int = 10
-    ) -> list[dict[str, Any]]:
+    async def get_paginated(self, url: str, *, max_pages: int = 10) -> list[dict[str, Any]]:
         """Paginate over results and collect them. Safety break at max_pages.
 
         Param `url` should contain `{}` for page number, indexation starts from 1 and
@@ -87,9 +83,7 @@ class ScheduledEmailController:
     async def lock_by_id(self, id_: UUID) -> ScheduledEmail:
         token = await self.token_cache.get_token()
         headers = self.auth_headers(token.token)
-        result = await self.client.post(
-            f"{self.api_base_url}/v2/scheduledemail/{id_}/lock", headers=headers
-        )
+        result = await self.client.post(f"{self.api_base_url}/v2/scheduledemail/{id_}/lock", headers=headers)
         result.raise_for_status()
         return ScheduledEmail(**result.json())
 
@@ -120,14 +114,10 @@ def map_api_uri_to_url(api_uri: str) -> str:
     logger.info(f"Mapping API URI {api_uri!r} onto URL.")
 
     match urlparse(api_uri):
-        case ParseResult(
-            scheme="value", netloc="", path=_, params="", query="", fragment=_
-        ):
+        case ParseResult(scheme="value", netloc="", path=_, params="", query="", fragment=_):
             raise UriError("Unexpected API URI 'value' scheme. Expected only 'api'.")
 
-        case ParseResult(
-            scheme="api", netloc="", path=model, params="", query="", fragment=id_
-        ):
+        case ParseResult(scheme="api", netloc="", path=model, params="", query="", fragment=id_):
             return f"{SETTINGS.API_BASE_URL}/v2/{model}/{id_}"
 
         case _:
@@ -145,9 +135,7 @@ def scalar_value_from_uri(uri: str) -> BasicTypes:
     }
 
     match urlparse(uri):
-        case ParseResult(
-            scheme="value", netloc="", path=path, params="", query="", fragment=value
-        ):
+        case ParseResult(scheme="value", netloc="", path=path, params="", query="", fragment=value):
             try:
                 return cast(BasicTypes, mapping[path](value))
             except KeyError as exc:
@@ -159,9 +147,7 @@ def scalar_value_from_uri(uri: str) -> BasicTypes:
             raise UriError(f"Unsupported URI {uri!r}.")
 
 
-async def fetch_model(
-    api_uri: str, client: httpx.AsyncClient, token: AuthToken
-) -> dict[str, Any]:
+async def fetch_model(api_uri: str, client: httpx.AsyncClient, token: AuthToken) -> dict[str, Any]:
     url = map_api_uri_to_url(api_uri)
     logger.info(f"Fetching entity from {url}.")
 
@@ -173,9 +159,7 @@ async def fetch_model(
     return cast(dict[str, Any], response.json())
 
 
-async def fetch_model_field(
-    api_uri: str, property: str, client: httpx.AsyncClient, token: AuthToken
-) -> str:
+async def fetch_model_field(api_uri: str, property: str, client: httpx.AsyncClient, token: AuthToken) -> str:
     logger.info(f"Fetching {property=} from model {api_uri!r}.")
 
     model = await fetch_model(api_uri, client, token)
@@ -192,20 +176,14 @@ async def context_entry(
     if isinstance(uri, list):
         return cast(
             list[dict[str, Any]],
-            await asyncio.gather(
-                *[fetch_model(single_uri, client, token) for single_uri in uri]
-            ),
+            await asyncio.gather(*[fetch_model(single_uri, client, token) for single_uri in uri]),
         )
 
     match urlparse(uri):
-        case ParseResult(
-            scheme="value", netloc="", path=_, params="", query="", fragment=_
-        ):
+        case ParseResult(scheme="value", netloc="", path=_, params="", query="", fragment=_):
             return scalar_value_from_uri(uri)
 
-        case ParseResult(
-            scheme="api", netloc="", path=_, params="", query="", fragment=_
-        ):
+        case ParseResult(scheme="api", netloc="", path=_, params="", query="", fragment=_):
             return await fetch_model(uri, client, token)
 
         case _:

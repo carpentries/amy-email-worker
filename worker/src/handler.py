@@ -3,9 +3,9 @@ from typing import cast
 from uuid import UUID
 
 import httpx
-import markdown
 from jinja2 import DebugUndefined, Environment
 from jinja2.exceptions import TemplateError
+import markdown
 from pydantic_core import ValidationError
 
 from src.api import (
@@ -30,9 +30,7 @@ from src.types import (
 logger = logging.getLogger("amy-email-worker")
 
 
-async def return_fail_email(
-    id_: UUID, details: str, controller: ScheduledEmailController
-) -> WorkerOutputEmail:
+async def return_fail_email(id_: UUID, details: str, controller: ScheduledEmailController) -> WorkerOutputEmail:
     """Auxilary function to log failed info and return failed email struct."""
     logger.info(details)
     failed_email = await controller.fail_by_id(id_, details=details)
@@ -92,10 +90,7 @@ async def handle_email(
 
     # Fetch data from API for context and recipients
     try:
-        context_dict = {
-            key: await context_entry(link, client, token)
-            for key, link in context.root.items()
-        }
+        context_dict = {key: await context_entry(link, client, token) for key, link in context.root.items()}
     except (UriError, httpx.HTTPError) as exc:
         return await return_fail_email(
             id,
@@ -108,9 +103,7 @@ async def handle_email(
             (
                 str(scalar_value_from_uri(recipient.value_uri))
                 if isinstance(recipient, SingleValueLinkModel)
-                else await fetch_model_field(
-                    recipient.api_uri, recipient.property, client, token
-                )
+                else await fetch_model_field(recipient.api_uri, recipient.property, client, token)
             )
             for recipient in recipients.root
         ]
@@ -125,9 +118,7 @@ async def handle_email(
     logger.info(f"Rendering email {id}.")
     engine = Environment(autoescape=True, undefined=DebugUndefined)
     try:
-        rendered_email = render_email(
-            engine, locked_email, context_dict, recipient_addresses_list
-        )
+        rendered_email = render_email(engine, locked_email, context_dict, recipient_addresses_list)
     except TemplateError as exc:
         return await return_fail_email(
             id,
@@ -160,9 +151,7 @@ async def handle_email(
         response.raise_for_status()
 
     except Exception as exc:
-        return await return_fail_email(
-            id, f"Failed to send email {id}. Error: {exc}", controller
-        )
+        return await return_fail_email(id, f"Failed to send email {id}. Error: {exc}", controller)
 
     else:
         succeeded_email = await controller.succeed_by_id(

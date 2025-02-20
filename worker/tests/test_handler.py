@@ -3,8 +3,8 @@ from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-import pytest
 from httpx import HTTPStatusError
+import pytest
 
 from src.handler import handle_email, return_fail_email
 from src.token import TokenCache
@@ -118,9 +118,7 @@ async def test_handle_email__happy_path(
         "status": scheduled_email.state.value,
     }
     controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
-    mock_fetch_model_field.assert_awaited_once_with(
-        "api:person#1", "email", client, token
-    )
+    mock_fetch_model_field.assert_awaited_once_with("api:person#1", "email", client, token)
     mock_send_email.assert_awaited_once_with(
         client,
         expected_rendered_email,
@@ -130,8 +128,7 @@ async def test_handle_email__happy_path(
     mock_send_email.return_value.raise_for_status.assert_called_once()
     controller.succeed_by_id.assert_awaited_once_with(
         scheduled_email.pk,
-        "Email sent successfully. Mailgun response: "
-        f"{mock_send_email.return_value.content}",
+        "Email sent successfully. Mailgun response: " f"{mock_send_email.return_value.content}",
     )
 
 
@@ -145,9 +142,7 @@ async def test_handle_email__invalid_context_json(
     # Arrange
     # forcing validation error
     scheduled_email.context_json = cast(dict[str, Any], "{")
-    failed_email = scheduled_email.model_copy(
-        update={"state": ScheduledEmailStatus.FAILED}
-    )
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
     client = AsyncMock()
     token_cache = TokenCache(client, token=token)
     controller = AsyncMock()
@@ -186,9 +181,7 @@ async def test_handle_email__invalid_to_header_context_json(
     # Arrange
     # forcing validation error
     scheduled_email.to_header_context_json = cast(list[dict[str, Any]], "{")
-    failed_email = scheduled_email.model_copy(
-        update={"state": ScheduledEmailStatus.FAILED}
-    )
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
     client = AsyncMock()
     token_cache = TokenCache(client, token=token)
     controller = AsyncMock()
@@ -226,9 +219,7 @@ async def test_handle_email__unsupported_context_uri(
 ) -> None:
     # Arrange
     scheduled_email.context_json = {"name": "unsupported#John Doe"}
-    failed_email = scheduled_email.model_copy(
-        update={"state": ScheduledEmailStatus.FAILED}
-    )
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
     client = AsyncMock()
     token_cache = TokenCache(client, token=token)
     controller = AsyncMock()
@@ -253,10 +244,7 @@ async def test_handle_email__unsupported_context_uri(
     controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     controller.fail_by_id.assert_awaited_once_with(
         scheduled_email.pk,
-        details=(
-            "Issue when generating context: Unsupported URI 'unsupported#John Doe' "
-            "for context generation."
-        ),
+        details=("Issue when generating context: Unsupported URI 'unsupported#John Doe' " "for context generation."),
     )
 
 
@@ -269,15 +257,11 @@ async def test_handle_email__api_error(
 ) -> None:
     # Arrange
     scheduled_email.context_json = {"name": "api:person#1"}
-    failed_email = scheduled_email.model_copy(
-        update={"state": ScheduledEmailStatus.FAILED}
-    )
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
     client = AsyncMock()
     mock_response = MagicMock()
     mock_response.raise_for_status = MagicMock(
-        side_effect=HTTPStatusError(
-            "Client error '404 Not Found'", request=MagicMock(), response=MagicMock()
-        )
+        side_effect=HTTPStatusError("Client error '404 Not Found'", request=MagicMock(), response=MagicMock())
     )
     client.get.return_value = mock_response
 
@@ -316,12 +300,8 @@ async def test_handle_email__invalid_recipients(
     overwrite_outgoing_emails: str,
 ) -> None:
     # Arrange
-    scheduled_email.to_header_context_json = [
-        {"api_uri": "unsupported#John Doe", "property": "email"}
-    ]
-    failed_email = scheduled_email.model_copy(
-        update={"state": ScheduledEmailStatus.FAILED}
-    )
+    scheduled_email.to_header_context_json = [{"api_uri": "unsupported#John Doe", "property": "email"}]
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
     client = AsyncMock()
     token_cache = TokenCache(client, token=token)
     controller = AsyncMock()
@@ -347,8 +327,7 @@ async def test_handle_email__invalid_recipients(
     controller.fail_by_id.assert_awaited_once_with(
         scheduled_email.pk,
         details=(
-            f"Issue when generating email {scheduled_email.pk} recipients: "
-            "Unsupported URI 'unsupported#John Doe'."
+            f"Issue when generating email {scheduled_email.pk} recipients: " "Unsupported URI 'unsupported#John Doe'."
         ),
     )
 
@@ -364,9 +343,7 @@ async def test_handle_email__invalid_jinja2_template(
 ) -> None:
     # Arrange
     scheduled_email.subject = "{{ invalid_syntax }"
-    failed_email = scheduled_email.model_copy(
-        update={"state": ScheduledEmailStatus.FAILED}
-    )
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
     client = AsyncMock()
     token_cache = TokenCache(client, token=token)
     controller = AsyncMock()
@@ -392,9 +369,7 @@ async def test_handle_email__invalid_jinja2_template(
     controller.lock_by_id.assert_awaited_once_with(scheduled_email.pk)
     controller.fail_by_id.assert_awaited_once_with(
         scheduled_email.pk,
-        details=(
-            f"Failed to render email {scheduled_email.pk}. Error: unexpected '}}'"
-        ),
+        details=(f"Failed to render email {scheduled_email.pk}. Error: unexpected '}}'"),
     )
 
 
@@ -410,9 +385,7 @@ async def test_handle_email__mailgun_error(
     overwrite_outgoing_emails: str,
 ) -> None:
     # Arrange
-    failed_email = scheduled_email.model_copy(
-        update={"state": ScheduledEmailStatus.FAILED}
-    )
+    failed_email = scheduled_email.model_copy(update={"state": ScheduledEmailStatus.FAILED})
     client = AsyncMock()
     token_cache = TokenCache(client, token=token)
     controller = AsyncMock()
