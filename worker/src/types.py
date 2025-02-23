@@ -46,8 +46,11 @@ class Credentials:
 
 
 class Attachment(BaseModel):
-    filename: str | None
+    filename: str
     s3_path: str
+    s3_bucket: str
+    presigned_url: str
+    presigned_url_expiration: datetime | None
 
 
 class ScheduledEmailStatus(Enum):

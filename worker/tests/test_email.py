@@ -111,6 +111,9 @@ def test_read_attachment_from_s3(
     attachment = Attachment(
         filename="certificate.pdf",
         s3_path="certificates/random-person/certificate.pdf",
+        s3_bucket="",
+        presigned_url="",
+        presigned_url_expiration=None,
     )
 
     # Act
@@ -260,6 +263,9 @@ async def test_send_email__with_attachments() -> None:
             Attachment(
                 filename="certificate.pdf",
                 s3_path="certificates/random-person/certificate.pdf",
+                s3_bucket="",
+                presigned_url="",
+                presigned_url_expiration=None,
             )
         ],
         attachments_with_content=[AttachmentWithContent(filename="certificate.pdf", content=b"Test")],

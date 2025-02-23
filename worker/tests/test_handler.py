@@ -43,6 +43,9 @@ def scheduled_email() -> ScheduledEmail:
             Attachment(
                 filename="certificate.pdf",
                 s3_path="certificates/random-person/certificate.pdf",
+                s3_bucket="",
+                presigned_url="",
+                presigned_url_expiration=None,
             )
         ],
     )

@@ -33,6 +33,9 @@ def scheduled_email_fixture() -> dict[str, Any]:
             {
                 "filename": "certificate.pdf",
                 "s3_path": "certs/random-person/certificate.pdf",
+                "s3_bucket": "carpentries-amy-email-attachments-staging",
+                "presigned_url": "",
+                "presigned_url_expiration": None,
             }
         ],
     }
