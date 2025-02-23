@@ -58,5 +58,11 @@ export class LambdaStack extends Stack {
       resources: ['*'],
       actions: ['ssm:GetParameter'],
     }));
+
+    // If this doesn't work, use Bucket.fromBucketName() and bucket.grantRead(executionRole)
+    executionRole.addToPolicy(new PolicyStatement({
+      resources: ['*'],
+      actions: ['s3:GetBucket*', 's3:GetObject*', 's3:List*'],
+    }));
   }
 }
