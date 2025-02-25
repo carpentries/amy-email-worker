@@ -34,7 +34,7 @@ export class LambdaStack extends Stack {
       environment.OVERWRITE_OUTGOING_EMAILS = 'amy-tests@carpentries.org';
     }
 
-    const exeuctionRole = new Role(this, 'EmailWorkerExecutionRole', {
+    const executionRole = new Role(this, 'EmailWorkerExecutionRole', {
       assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
     });
 
@@ -48,15 +48,21 @@ export class LambdaStack extends Stack {
       timeout: Duration.minutes(2),
       vpc: vpc,
       environment: environment,
-      role: exeuctionRole,
+      role: executionRole,
     });
 
-    exeuctionRole.addManagedPolicy(
+    executionRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole')
     );
-    exeuctionRole.addToPolicy(new PolicyStatement({
+    executionRole.addToPolicy(new PolicyStatement({
       resources: ['*'],
       actions: ['ssm:GetParameter'],
+    }));
+
+    // If this doesn't work, use Bucket.fromBucketName() and bucket.grantRead(executionRole)
+    executionRole.addToPolicy(new PolicyStatement({
+      resources: ['*'],
+      actions: ['s3:GetBucket*', 's3:GetObject*', 's3:List*'],
     }));
   }
 }

@@ -2,8 +2,8 @@ import asyncio
 import logging
 from typing import Any
 
-import httpx
 from aws_lambda_powertools.utilities.typing import LambdaContext
+import httpx
 
 from src.api import ScheduledEmailController
 from src.handler import handle_email
