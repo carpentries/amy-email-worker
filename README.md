@@ -14,7 +14,7 @@ required.
 
 ## First steps (Python)
 
-This project is for Python 3.11 version.
+This project is for Python 3.12 version.
 
 To work on Python code you should install [Poetry](https://python-poetry.org/docs/#installation).
 

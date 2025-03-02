@@ -41,7 +41,7 @@ export class LambdaStack extends Stack {
     this.lambdaFunction = new PythonFunction(this, 'EmailWorker', {
       functionName: `amy-email-worker-${stage}`,
       architecture: Architecture.X86_64,  // more expensive than ARM
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       entry: '../worker',
       index: 'main.py',
       handler: 'handler',
@@ -49,6 +49,10 @@ export class LambdaStack extends Stack {
       vpc: vpc,
       environment: environment,
       role: executionRole,
+      bundling: {
+        poetryIncludeHashes: true,
+        assetExcludes: ['.mypy_cache', '.pytest_cache', '__pycache__'],
+      },
     });
 
     executionRole.addManagedPolicy(
