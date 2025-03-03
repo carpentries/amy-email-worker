@@ -49,6 +49,6 @@ def read_token_credentials_from_ssm() -> Credentials:
 
 @functools.cache
 def read_s3_bucket_from_ssm() -> str:
-    bucket_parameter = read_ssm_parameter(f"/{STAGE}/email-worker/s3_bucket")
+    bucket_parameter = read_ssm_parameter(f"/{STAGE}/amy/email_attachments_bucket_name")
     bucket = get_parameter_value(bucket_parameter) if bucket_parameter else "fakeBucket"
     return bucket
