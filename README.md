@@ -72,7 +72,7 @@ To deploy lambda use CDK:
 
 ```shell
 $ cd cdk/
-$ cdk deploy EmailWorkerLambda
+$ cdk deploy EmailWorkerLambdaStaging
 ```
 
 **Warning:** this circumvents the CI/CD pipeline.

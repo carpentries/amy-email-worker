@@ -51,4 +51,4 @@ jobs:
     - name: Deploy to AWS
       working-directory: ./cdk
       run: |
-        npx cdk deploy --require-approval=never EmailWorkerLambda
+        npx cdk deploy --require-approval=never EmailWorkerLambdaStaging

@@ -19,7 +19,7 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 ### Staging environment
 
 ```bash
-$ npx cdk deploy EmailWorkerVpc EmailWorkerLambda EmailWorkerCron --profile carpentries
+$ npx cdk deploy EmailWorkerVpc EmailWorkerLambdaStaging EmailWorkerCronStaging --profile carpentries
 ```
 `--profile` can be a default profile or a named profile in `~/.aws/credentials` file.
 
@@ -28,6 +28,6 @@ $ npx cdk deploy EmailWorkerVpc EmailWorkerLambda EmailWorkerCron --profile carp
 In this case, the stage is changed to `production`, and the stacks have slightly different names:
 
 ```bash
-$ npx cdk deploy EmailWorkerVpcProd EmailWorkerLambdaProd EmailWorkerCronProd --profile carpentries
+$ npx cdk deploy EmailWorkerVpcProd EmailWorkerLambdaProduction EmailWorkerCronProduction --profile carpentries
 ```
 `--profile` can be a default profile or a named profile in `~/.aws/credentials` file.
