@@ -1,13 +1,11 @@
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { IVpc } from "aws-cdk-lib/aws-ec2";
 import { Architecture, IFunction, Runtime } from "aws-cdk-lib/aws-lambda";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
 import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import type { Stage } from './types';
 
 interface AdditionalProps extends StackProps {
-  vpc: IVpc;
   stage: Stage;
   api_base_url: string;
 }
@@ -19,7 +17,6 @@ export class LambdaStack extends Stack {
     super(scope, id, props);
 
     const {
-      vpc,
       stage,
       api_base_url,
     } = props;
@@ -46,7 +43,6 @@ export class LambdaStack extends Stack {
       index: 'main.py',
       handler: 'handler',
       timeout: Duration.minutes(2),
-      vpc: vpc,
       environment: environment,
       role: executionRole,
       bundling: {
